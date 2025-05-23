@@ -1,30 +1,74 @@
 import React, { useState, useContext } from 'react';
-import { AuthContext } from '../Context/AuthContext';
+import { AuthContext } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { login as apiLogin } from '../api';  // Your login API call
 
-export default function LoginPage() {
+const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const token = await apiLogin(email, password);
-      login(token);       // update context + localStorage
-      navigate('/profile'); // redirect after login
-    } catch (err) {
-      alert('Login failed. Please check your credentials.');
+    setError('');
+
+    if (!email || !password) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    const result = await login(email, password);
+    if (!result.success) {
+      setError(result.message);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" />
-      <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" />
-      <button type="submit">Login</button>
-    </form>
+    <div className="flex justify-center items-center h-screen bg-gray-100">
+      <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
+        <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
+        {error && <p className="text-red-500 mb-4">{error}</p>}
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="block text-gray-700">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-2 border rounded"
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-2 border rounded"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+          >
+            Login
+          </button>
+        </form>
+        <p className="mt-4 text-center">
+          Don't have an account?{' '}
+          <span
+            className="text-blue-500 cursor-pointer"
+            onClick={() => navigate('/register')}
+          >
+            Sign up
+          </span>
+        </p>
+      </div>
+    </div>
   );
-}
+};
+
+export default Login;

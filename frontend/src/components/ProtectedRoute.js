@@ -1,14 +1,13 @@
-import { useContext } from 'react';
+// src/ProtectedRoute.js
+import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { AuthContext } from '../Context/AuthContext';
+import { useAuth } from './Context/AuthContext';
 
 export default function ProtectedRoute({ children }) {
-  const { user, loading } = useContext(AuthContext);
-  console.log('ProtectedRoute: Checking user:', user, 'Loading:', loading);
+  const { user, loading } = useAuth();
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  if (loading) return <div>Loading...</div>;
+  if (!user) return <Navigate to="/login" />;
 
-  return user ? children : <Navigate to="/login" />;
+  return children;
 }

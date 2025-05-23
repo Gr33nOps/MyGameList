@@ -1,10 +1,15 @@
-// src/components/GameCard.js
+import './GameCard.css'; // We'll create this CSS file
+
 export default function GameCard({ title, description, coverUrl }) {
   return (
-    <div className="card">
-      <img src={coverUrl} alt={title} />
-      <h3>{title}</h3>
-      <p>{description}</p>
+    <div className="game-card">
+      <div className="game-card-image-wrapper">
+        <img src={coverUrl} alt={title} className="game-card-image" />
+      </div>
+      <div className="game-card-content">
+        <h3 className="game-card-title">{title}</h3>
+        <p className="game-card-description">{description}</p>
+      </div>
     </div>
   );
 }

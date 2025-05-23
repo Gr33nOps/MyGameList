@@ -1,4 +1,3 @@
-// src/api/index.js
 import axios from 'axios';
 
 const api = axios.create({
@@ -8,22 +7,42 @@ const api = axios.create({
   },
 });
 
-export const fetchGames = () =>
-  api.get('/games').then(res => res.data);
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      delete api.defaults.headers.common['Authorization'];
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export const fetchGames = () => api.get('/games').then((res) => res.data);
 
 export const fetchUserGameList = (userId) =>
-  api.get(`/user-game-list/${userId}`).then(res => res.data);
+  api.get(`/user-game-list/${userId}`).then((res) => res.data);
 
 export const login = async (email, password) => {
-  const response = await api.post('/auth/login', { email, password });
-  const token = response.data.token;
-  localStorage.setItem('token', token);
-  return token;
+  try {
+    const response = await api.post('/auth/login', { email, password });
+    const token = response.data.token;
+    localStorage.setItem('token', token);
+    setAuthToken(token);
+    return token;
+  } catch (err) {
+    throw new Error(err.response?.data?.error || 'Login failed');
+  }
 };
 
 export const signup = async (username, email, password) => {
-  const response = await api.post('/auth/register', { username, email, password });
-  return response.data;
+  try {
+    const response = await api.post('/auth/register', { username, email, password });
+    return response.data;
+  } catch (err) {
+    throw new Error(err.response?.data?.error || 'Signup failed');
+  }
 };
 
 export const setAuthToken = (token) => {
