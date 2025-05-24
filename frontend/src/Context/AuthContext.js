@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { setAuthToken } from '../api';
-import { jwtDecode } from 'jwt-decode'; // Use named import
+import { jwtDecode } from 'jwt-decode';  // <-- Named import fixed
 
-const AuthContext = createContext();
+export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -11,6 +11,9 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initializeAuth = () => {
       const token = localStorage.getItem('token');
+      const email = localStorage.getItem('email');
+      const name = localStorage.getItem('name');
+
       if (token) {
         try {
           const payload = jwtDecode(token);
@@ -18,7 +21,7 @@ export const AuthProvider = ({ children }) => {
             logout(); // Token expired
           } else {
             setAuthToken(token);
-            setUser({ id: payload.userId, email: payload.email });
+            setUser({ token, email, name });
           }
         } catch (err) {
           console.error('Invalid token:', err);
@@ -30,15 +33,18 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
-  const login = (token) => {
+  const login = (token, email, name) => {
     localStorage.setItem('token', token);
+    localStorage.setItem('email', email);
+    localStorage.setItem('name', name);
     setAuthToken(token);
-    const payload = jwtDecode(token);
-    setUser({ id: payload.userId, email: payload.email });
+    setUser({ token, email, name });
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('email');
+    localStorage.removeItem('name');
     setAuthToken(null);
     setUser(null);
   };

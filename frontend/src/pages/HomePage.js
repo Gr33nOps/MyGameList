@@ -18,6 +18,7 @@ export default function HomePage() {
           {games.map(game => (
             <GameCard
               key={game.game_id}
+              game_id={game.game_id}
               title={game.title}
               description={game.description}
               coverUrl={game.cover_art_url}

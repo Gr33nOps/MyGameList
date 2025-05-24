@@ -1,14 +1,14 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
-import { login } from '../api';
-import './LoginPage.css'; // We'll create this CSS file
+import './LoginPage.css'; // Your CSS file
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
   const { login: authLogin, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -30,11 +30,24 @@ export default function LoginPage() {
     }
 
     try {
-      const token = await login(email, password);
-      authLogin(token);
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+
+      // Call your auth context login with token, email, and name
+      authLogin(data.token, email, data.name || 'User');
+
       navigate('/profile');
     } catch (err) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      setError(err.message);
     }
   };
 
@@ -54,7 +67,7 @@ export default function LoginPage() {
           <h2>Welcome Back</h2>
           <p>Please sign in to your account</p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="auth-form">
           {error && (
             <div className="error-message">
@@ -62,7 +75,7 @@ export default function LoginPage() {
               {error}
             </div>
           )}
-          
+
           <div className="input-group">
             <label htmlFor="email">Email Address</label>
             <div className="input-wrapper">
@@ -96,6 +109,7 @@ export default function LoginPage() {
                 type="button"
                 className="password-toggle"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? '👁️' : '👁️‍🗨️'}
               </button>

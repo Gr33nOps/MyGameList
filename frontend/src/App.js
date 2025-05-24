@@ -1,12 +1,12 @@
 // src/App.js
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import HomePage from './pages/HomePage';
-import MyListPage from './pages/MyListPage';
-import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
-import ProfilePage from './pages/ProfilePage';
-import NavBar from './components/NavBar';
-import { AuthProvider, useAuth } from './Context/AuthContext';
+import HomePage from './pages/HomePage.js';
+import MyListPage from './pages/MyListPage.js';
+import LoginPage from './pages/LoginPage.js';
+import SignupPage from './pages/SignupPage.js';
+import ProfilePage from './pages/ProfilePage.js';
+import NavBar from './components/NavBar.js';
+import { AuthProvider, useAuth } from './Context/AuthContext.js';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();

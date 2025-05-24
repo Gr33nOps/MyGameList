@@ -1,3 +1,5 @@
+
+// src/api.js
 import axios from 'axios';
 
 const api = axios.create({
@@ -13,24 +15,58 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       delete api.defaults.headers.common['Authorization'];
-      window.location.href = '/login';
+      // Only redirect in browser environment
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
 );
 
-export const fetchGames = () => api.get('/games').then((res) => res.data);
+export const fetchGames = () =>
+  api.get('/games').then((res) => {
+    console.log('Fetched games:', res.data);
+    res.data.forEach((game, index) => {
+      if (!game.game_id || isNaN(game.game_id) || game.game_id <= 0) {
+        console.warn(`Invalid game_id at index ${index}:`, game);
+      }
+    });
+    return res.data;
+  });
 
-export const fetchUserGameList = (userId) =>
-  api.get(`/user-game-list/${userId}`).then((res) => res.data);
+export const fetchUserGameList = async (userId, token) => {
+  if (!token) {
+    throw new Error('No authentication token provided');
+  }
+  setAuthToken(token);
+  const response = await api.get(`/user-game-list/${userId}`);
+  return response.data;
+};
+
+export const addGameToList = async (gameData, token) => {
+  if (!token) {
+    throw new Error('No authentication token provided');
+  }
+  setAuthToken(token);
+  try {
+    const response = await api.post('/user-game-list', gameData);
+    return response.data;
+  } catch (err) {
+    const errorMsg = err.response?.data?.errors?.[0]?.msg || err.response?.data?.error || 'Failed to add game';
+    throw new Error(errorMsg);
+  }
+};
 
 export const login = async (email, password) => {
   try {
     const response = await api.post('/auth/login', { email, password });
-    const token = response.data.token;
+    const { token, name } = response.data;
     localStorage.setItem('token', token);
+    localStorage.setItem('email', email);
+    if (name) localStorage.setItem('name', name);
     setAuthToken(token);
-    return token;
+    return { token, email, name };
   } catch (err) {
     throw new Error(err.response?.data?.error || 'Login failed');
   }
