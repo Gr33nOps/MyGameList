@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../Context/AuthContext';
 import { fetchUserGameList } from '../api';
 import { jwtDecode } from 'jwt-decode';
+import './MyListPage.css';
 
 export default function MyListPage() {
   const { user } = useAuth();
@@ -62,45 +63,121 @@ export default function MyListPage() {
     fetchGames();
   }, [user]);
 
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'completed': return '#10b981';
+      case 'playing': return '#3b82f6';
+      case 'on-hold': return '#f59e0b';
+      case 'dropped': return '#ef4444';
+      case 'plan to play': return '#8b5cf6';
+      default: return '#6b7280';
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    return (
+      <span 
+        className="status-badge"
+        style={{ backgroundColor: getStatusColor(status) }}
+      >
+        {status}
+      </span>
+    );
+  };
+
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-4">My Game List</h1>
-      
-      {/* Debug Information */}
-      {debugInfo && (
-        <div className="bg-gray-100 p-2 mb-4 rounded text-sm">
-          <strong>Debug:</strong> {debugInfo}
-        </div>
-      )}
-      
-      {error && <p className="text-red-500 mb-4">{error}</p>}
-      
-      {loading ? (
-        <p>Loading games...</p>
-      ) : games.length === 0 ? (
-        <div>
-          <p>No games in your list yet.</p>
-          <p className="text-sm text-gray-500 mt-2">
-            Try adding some games from the Games page first.
-          </p>
-        </div>
-      ) : (
-        <ul className="space-y-2">
-          {games.map((game) => (
-            <li key={game.list_entry_id} className="p-2 border rounded">
-              <div className="font-semibold">{game.title}</div>
-              <div className="text-sm text-gray-600">
-                Status: {game.status} | Hours: {game.hours_played || 0} | 
-                {game.score && ` Score: ${game.score}/10 |`}
-                Added: {new Date(game.date_added).toLocaleDateString()}
+    <div className="mylist-container">
+      <div className="mylist-card">
+        <h1 className="mylist-title">My Game Library</h1>
+        
+        {/* Debug Information */}
+        {debugInfo && (
+          <div className="debug-info">
+            <strong>Debug:</strong> {debugInfo}
+          </div>
+        )}
+        
+        {error && (
+          <div className="error-message">
+            <div className="error-icon">⚠️</div>
+            <p>{error}</p>
+          </div>
+        )}
+        
+        {loading ? (
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p>Loading your games...</p>
+          </div>
+        ) : games.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">🎮</div>
+            <h2>Your game library is empty</h2>
+            <p>Start building your collection by adding games from the Games page!</p>
+            <div className="empty-suggestions">
+              <p>You can track games you've:</p>
+              <div className="suggestion-tags">
+                <span className="suggestion-tag">Completed</span>
+                <span className="suggestion-tag">Currently Playing</span>
+                <span className="suggestion-tag">Want to Play</span>
               </div>
-              {game.review && (
-                <div className="text-sm mt-1 italic">"{game.review}"</div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+            </div>
+          </div>
+        ) : (
+          <div className="games-section">
+            <div className="games-header">
+              <h2>Your Games ({games.length})</h2>
+              <div className="sort-options">
+                {/* You can add sorting options here later */}
+              </div>
+            </div>
+            
+            <div className="games-grid">
+              {games.map((game) => (
+                <div key={game.list_entry_id} className="game-card">
+                  <div className="game-header">
+                    <h3 className="game-title">{game.title}</h3>
+                    {getStatusBadge(game.status)}
+                  </div>
+                  
+                  <div className="game-stats">
+                    <div className="stat-item">
+                      <span className="stat-label">Hours Played</span>
+                      <span className="stat-value">{game.hours_played || 0}h</span>
+                    </div>
+                    
+                    {game.score && (
+                      <div className="stat-item">
+                        <span className="stat-label">Your Score</span>
+                        <span className="stat-value score">{game.score}/10</span>
+                      </div>
+                    )}
+                    
+                    <div className="stat-item">
+                      <span className="stat-label">Added</span>
+                      <span className="stat-value">
+                        {new Date(game.date_added).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {game.review && (
+                    <div className="game-review">
+                      <div className="review-label">Your Review:</div>
+                      <div className="review-text">"{game.review}"</div>
+                    </div>
+                  )}
+                  
+                  <div className="game-actions">
+                    <button className="action-btn edit-btn">Edit</button>
+                    <button className="action-btn remove-btn">Remove</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
