@@ -1,6 +1,3 @@
--- MyGameList Database Schema - Simplified Version
--- Essential attributes only for core functionality
-
 -- =============================================
 -- CORE ENTITIES
 -- =============================================
