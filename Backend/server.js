@@ -3,6 +3,7 @@ const cors = require('cors');
 const knex = require('knex');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+require('dotenv').config();
 
 const app = express();
 app.use(cors());
@@ -12,15 +13,14 @@ app.use(express.json());
 const db = knex({
   client: 'mysql2',
   connection: {
-    host: 'localhost',
-    user: 'zain',      // Replace with your DB user
-    password: '123', // Replace with your DB password
-    database: 'MY_GAME_LIST'
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME
   }
 });
 
-// JWT Secret (should be stored in environment variables in production)
-const JWT_SECRET = '123'; // Replace with a secure secret
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Middleware to verify JWT token
 const verifyToken = (req, res, next) => {
@@ -113,7 +113,8 @@ app.get('/api/games', async (req, res) => {
     // Fetch the games with specific columns
     const games = await query
       .select(
-        'games.id', 'games.name', 'games.slug', 'games.description', 'games.released',
+        'games.id', 'games.name', 'games.slug', 'games.description',
+        db.raw("DATE_FORMAT(games.released, '%Y-%m-%d') as released"),
         'games.background_image', 'games.rating', 'games.metacritic_score', 'games.playtime'
       )
       .orderBy(
@@ -145,12 +146,14 @@ app.get('/api/games', async (req, res) => {
 });
 
 app.get('/api/games/:id', async (req, res) => {
-  try {
+    try {
     const game = await db('games')
       .where({ id: req.params.id })
       .select(
-        'id', 'name', 'slug', 'description', 'released', 
-        'background_image', 'rating', 'metacritic_score', 'playtime'
+        'id', 'name', 'slug', 'description',
+        'background_image', 'rating', 'metacritic_score', 'playtime',
+        // Add MySQL date formatting here
+        db.raw("DATE_FORMAT(released, '%Y-%m-%d') as released")
       )
       .first();
     
@@ -191,8 +194,15 @@ app.get('/api/user/games', verifyToken, async (req, res) => {
       .join('games', 'user_game_lists.game_id', 'games.id')
       .where('user_game_lists.user_id', req.userId)
       .select(
-        'games.id', 'games.name', 'games.slug', 'games.background_image', 
-        'games.rating', 'user_game_lists.status', 'user_game_lists.score', 
+        'games.id', 
+        'games.name', 
+        'games.slug', 
+        'games.background_image', 
+        'games.rating',
+        // MySQL date formatting
+        db.raw("DATE_FORMAT(games.released, '%Y-%m-%d') as released"),
+        'user_game_lists.status', 
+        'user_game_lists.score', 
         'user_game_lists.progress_hours'
       );
 
@@ -236,6 +246,38 @@ app.post('/api/user/games/:id', verifyToken, async (req, res) => {
       .merge();
 
     res.json({ message: 'Game added/updated successfully' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update score in user_game_lists
+app.put('/api/user/games/:id', verifyToken, async (req, res) => {
+  try {
+    const { status, score, progress_hours } = req.body;
+    const gameId = req.params.id;
+
+    // Verify game exists
+    const game = await db('games').where({ id: gameId }).first();
+    if (!game) return res.status(404).json({ error: 'Game not found' });
+
+    // Verify game is in user's list
+    const existingEntry = await db('user_game_lists')
+      .where({ user_id: req.userId, game_id: gameId })
+      .first();
+    if (!existingEntry) return res.status(404).json({ error: 'Game not in your list' });
+
+    // Update the entry
+    await db('user_game_lists')
+      .where({ user_id: req.userId, game_id: gameId })
+      .update({
+        status: status || existingEntry.status,
+        score: score !== undefined ? score : existingEntry.score,
+        progress_hours: progress_hours !== undefined ? progress_hours : existingEntry.progress_hours,
+        updated_at: db.fn.now()
+      });
+
+    res.json({ message: 'Game updated successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

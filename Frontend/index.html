@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyGameList - Discover and Track Your Games</title>
+    <title>My Game List</title>
     <style>
         * {
             margin: 0;
@@ -12,346 +12,297 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             color: #333;
-            background-color: #f5f5f5;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 20px;
         }
 
-        /* Header */
         .header {
-            background: #2c3e50;
+            text-align: center;
+            margin-bottom: 40px;
             color: white;
-            padding: 1rem 0;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        .nav {
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .user-info {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-
-        .logo {
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-
-        .nav-links {
-            display: flex;
-            list-style: none;
-            gap: 2rem;
-        }
-
-        .nav-links a {
             color: white;
-            text-decoration: none;
-            transition: color 0.3s;
         }
 
-        .nav-links a:hover {
-            color: #3498db;
+        .user-info span {
+            font-size: 1.1rem;
+            font-weight: 500;
         }
 
-        .auth-buttons {
+        .user-actions {
             display: flex;
-            gap: 1rem;
+            gap: 10px;
         }
 
         .btn {
-            padding: 0.5rem 1rem;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
             border: none;
-            border-radius: 4px;
+            padding: 12px 24px;
+            border-radius: 25px;
             cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
             text-decoration: none;
             display: inline-block;
-            transition: background-color 0.3s;
+            font-size: 14px;
         }
 
-        .btn-primary {
-            background: #3498db;
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn.secondary {
+            background: linear-gradient(45deg, #74b9ff, #0984e3);
+        }
+
+        .btn.danger {
+            background: linear-gradient(45deg, #e84393, #d63031);
+        }
+
+        .btn.small {
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+
+        /* Auth Section */
+        .auth-section {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            background: #f0f0f0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
         }
 
-        .btn-primary:hover {
-            background: #2980b9;
+        .auth-form {
+            display: none;
         }
 
-        .btn-secondary {
-            background: transparent;
-            color: white;
-            border: 1px solid white;
+        .auth-form.active {
+            display: block;
         }
 
-        .btn-secondary:hover {
-            background: white;
-            color: #2c3e50;
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
         }
 
         /* Search Section */
-        .search-section {
-            background: white;
-            padding: 2rem 0;
-            border-bottom: 1px solid #ddd;
+        .section {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
         }
 
-        .search-container {
+        .search-bar {
             display: flex;
-            gap: 1rem;
-            align-items: center;
-            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 30px;
         }
 
         .search-input {
             flex: 1;
-            min-width: 300px;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 1rem;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
         }
 
-        .filters {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .filter-select {
-            padding: 0.5rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        /* Main Content */
-        .main-content {
-            display: grid;
-            grid-template-columns: 250px 1fr;
-            gap: 2rem;
-            padding: 2rem 0;
-        }
-
-        .sidebar {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 8px;
-            height: fit-content;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .sidebar h3 {
-            margin-bottom: 1rem;
-            color: #2c3e50;
-        }
-
-        .filter-group {
-            margin-bottom: 2rem;
-        }
-
-        .filter-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-        }
-
-        .filter-group select,
-        .filter-group input {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        .games-section {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .games-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .sort-select {
-            padding: 0.5rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
         }
 
         /* Games Grid */
         .games-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
         }
 
         .game-card {
             background: white;
-            border-radius: 8px;
+            border-radius: 15px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
             cursor: pointer;
         }
 
         .game-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
 
         .game-image {
             width: 100%;
-            height: 180px;
-            background: #f0f0f0;
-            background-size: cover;
-            background-position: center;
-            position: relative;
-        }
-
-        .game-rating {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.8rem;
+            height: 200px;
+            object-fit: cover;
         }
 
         .game-info {
-            padding: 1rem;
+            padding: 20px;
         }
 
         .game-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: #2c3e50;
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #333;
         }
 
-        .game-meta {
+        .game-rating {
+            background: linear-gradient(45deg, #fdcb6e, #e17055);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
             font-size: 0.9rem;
-            color: #666;
-            margin-bottom: 0.5rem;
+            margin-right: 10px;
+        }
+
+        .game-score {
+            background: linear-gradient(45deg, #00b894, #00cec9);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.9rem;
         }
 
         .game-genres {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.25rem;
-            margin-bottom: 0.5rem;
+            margin: 15px 0;
         }
 
         .genre-tag {
-            background: #ecf0f1;
-            color: #2c3e50;
-            padding: 0.2rem 0.5rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-        }
-
-        .game-actions {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-        }
-
-        .btn-small {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.8rem;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .btn-add {
-            background: #27ae60;
-            color: white;
-        }
-
-        .btn-add:hover {
-            background: #219a52;
-        }
-
-        .btn-info {
-            background: #3498db;
-            color: white;
-        }
-
-        .btn-info:hover {
-            background: #2980b9;
-        }
-
-        /* Pagination */
-        .pagination {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 1rem;
-            margin-top: 2rem;
-            padding: 1rem;
-        }
-
-        .pagination button {
-            padding: 0.5rem 1rem;
-            border: 1px solid #ddd;
-            background: white;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-
-        .pagination button:hover:not(:disabled) {
             background: #f8f9fa;
-        }
-
-        .pagination button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .pagination .current-page {
-            background: #3498db;
-            color: white;
-            border-color: #3498db;
-        }
-
-        /* Loading */
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            font-size: 1.1rem;
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            margin-right: 8px;
             color: #666;
         }
 
-        .spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #3498db;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 0.5rem;
+        /* My Games List Style */
+        .my-games-list {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.3s ease;
         }
 
-        /* Modals */
+        .list-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .game-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
+
+        .game-score-display {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-right: 20px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .list-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -361,257 +312,727 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
         }
 
         .modal-content {
-            background-color: white;
+            background: white;
             margin: 5% auto;
-            padding: 2rem;
-            border-radius: 8px;
+            padding: 30px;
+            border-radius: 20px;
             width: 90%;
-            max-width: 500px;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
             position: relative;
         }
 
-        .close {
+        .close-btn {
             position: absolute;
-            right: 1rem;
-            top: 1rem;
-            font-size: 1.5rem;
+            right: 20px;
+            top: 20px;
+            font-size: 30px;
+            font-weight: bold;
             cursor: pointer;
-            color: #666;
+            color: #999;
         }
 
-        .close:hover {
-            color: #000;
+        .close-btn:hover {
+            color: #333;
         }
 
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
+        .detail-image {
             width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 1rem;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 15px;
+            margin-bottom: 20px;
         }
 
-        .form-group textarea {
-            height: 100px;
-            resize: vertical;
+        .add-to-list {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
         }
 
-        /* User Status */
-        .user-info {
+        .score-input {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            width: 80px;
+            text-align: center;
+        }
+
+        /* Update Score Modal */
+        .update-modal {
             display: none;
-            background: #27ae60;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
         }
 
-        /* Responsive */
+        .update-modal-content {
+            background: white;
+            margin: 20% auto;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .update-form {
+            margin-top: 20px;
+        }
+
+        .update-form input {
+            width: 100px;
+            padding: 10px;
+            margin: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        .update-actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none !important;
+        }
+
+        .error {
+            color: #d63031;
+            background: #ffe0e0;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .success {
+            color: #00b894;
+            background: #e0fff8;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+            font-size: 1.1rem;
+        }
+
         @media (max-width: 768px) {
-            .main-content {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .user-info {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .games-grid {
                 grid-template-columns: 1fr;
             }
-
-            .sidebar {
-                order: 2;
-            }
-
-            .nav-links {
-                display: none;
-            }
-
-            .search-container {
+            
+            .list-item {
                 flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
             }
-
-            .search-input {
-                min-width: auto;
-            }
-
-            .games-grid {
-                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            
+            .list-actions {
+                width: 100%;
+                justify-content: center;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <nav class="nav">
-                <div class="logo">MyGameList</div>
-                <ul class="nav-links">
-                    <li><a href="#" onclick="showHome()">Home</a></li>
-                    <li><a href="#" onclick="showMyList()">My List</a></li>
-                    <li><a href="#" onclick="showStats()">Stats</a></li>
-                </ul>
-                <div class="auth-section">
-                    <div class="auth-buttons" id="authButtons">
-                        <button class="btn btn-secondary" onclick="showLogin()">Login</button>
-                        <button class="btn btn-primary" onclick="showRegister()">Register</button>
-                    </div>
-                    <div class="user-info" id="userInfo">
-                        <span id="userName"></span>
-                        <button class="btn btn-secondary" onclick="logout()" style="margin-left: 1rem;">Logout</button>
-                    </div>
-                </div>
-            </nav>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 My Game List</h1>
+            <p>Discover and track your favorite games</p>
         </div>
-    </header>
 
-    <!-- Search Section -->
-    <section class="search-section">
-        <div class="container">
-            <div class="search-container">
-                <input type="text" class="search-input" id="searchInput" placeholder="Search games...">
-                <button class="btn btn-primary" onclick="searchGames()">Search</button>
+        <!-- User Info (shown when logged in) -->
+        <div id="userInfo" class="user-info hidden">
+            <span id="welcomeText"></span>
+            <div class="user-actions">
+                <button class="btn" id="myGamesBtn">My Game List</button>
+                <button class="btn secondary" id="backToSearchBtn" style="display: none;">Back to Search</button>
+                <button class="btn danger" id="logoutBtn">Logout</button>
             </div>
         </div>
-    </section>
 
-    <!-- Main Content -->
-    <main class="container">
-        <div class="main-content">
-            <!-- Sidebar Filters -->
-            <aside class="sidebar">
-                <h3>Filters</h3>
-                
-                <div class="filter-group">
-                    <label for="genreFilter">Genre</label>
-                    <select id="genreFilter" class="filter-select">
-                        <option value="">All Genres</option>
-                    </select>
-                </div>
+        <!-- Authentication Section -->
+        <div id="authSection" class="auth-section">
+            <div class="auth-tabs">
+                <button class="tab-btn active" data-tab="login">Login</button>
+                <button class="tab-btn" data-tab="register">Register</button>
+            </div>
 
-                <button class="btn btn-primary" onclick="applyFilters()" style="width: 100%; margin-top: 1rem;">Apply Filters</button>
-                <button class="btn btn-secondary" onclick="clearFilters()" style="width: 100%; margin-top: 0.5rem;">Clear Filters</button>
-            </aside>
-
-            <!-- Games Section -->
-            <section class="games-section">
-                <div class="games-header">
-                    <h2 id="sectionTitle">Discover Games</h2>
-                    <select id="sortSelect" class="sort-select" onchange="sortGames()">
-                        <option value="-rating">Highest Rated</option>
-                        <option value="rating">Lowest Rated</option>
-                        <option value="-metacritic_score">Metacritic Score (High to Low)</option>
-                        <option value="metacritic_score">Metacritic Score (Low to High)</option>
-                        <option value="-released">Newest First</option>
-                        <option value="released">Oldest First</option>
-                        <option value="name">Name (A-Z)</option>
-                        <option value="-name">Name (Z-A)</option>
-                    </select>
-                </div>
-
-                <div id="loadingIndicator" class="loading">
-                    <div class="spinner"></div>
-                    Loading games...
-                </div>
-
-                <div id="gamesGrid" class="games-grid"></div>
-
-                <div class="pagination" id="pagination"></div>
-            </section>
-        </div>
-    </main>
-
-    <!-- Login Modal -->
-    <div id="loginModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('loginModal')">×</span>
-            <h2>Login</h2>
-            <form id="loginForm">
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form active">
                 <div class="form-group">
-                    <label for="loginUsername">Username or Email</label>
+                    <label>Username:</label>
                     <input type="text" id="loginUsername" required>
                 </div>
                 <div class="form-group">
-                    <label for="loginPassword">Password</label>
+                    <label>Password:</label>
                     <input type="password" id="loginPassword" required>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+                <button type="submit" class="btn">Login</button>
+                <div id="loginError" class="error hidden"></div>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerForm" class="auth-form">
+                <div class="form-group">
+                    <label>Username:</label>
+                    <input type="text" id="regUsername" required>
+                </div>
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" id="regEmail" required>
+                </div>
+                <div class="form-group">
+                    <label>Display Name:</label>
+                    <input type="text" id="regDisplayName" required>
+                </div>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" id="regPassword" required>
+                </div>
+                <button type="submit" class="btn">Register</button>
+                <div id="registerError" class="error hidden"></div>
             </form>
         </div>
-    </div>
 
-    <!-- Register Modal -->
-    <div id="registerModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('registerModal')">×</span>
-            <h2>Register</h2>
-            <form id="registerForm">
-                <div class="form-group">
-                    <label for="registerUsername">Username</label>
-                    <input type="text" id="registerUsername" required>
+        <!-- Search Section -->
+        <div id="searchSection" class="section hidden">
+            <div class="search-bar">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search for games...">
+                <button id="searchBtn" class="btn">Search</button>
+            </div>
+            <div id="searchResults" class="games-grid"></div>
+        </div>
+
+        <!-- My Games Section -->
+        <div id="myGamesSection" class="section hidden">
+            <h2 style="margin-bottom: 30px; text-align: center; color: #333;">My Game List</h2>
+            <div id="myGamesGrid" class="my-games-list"></div>
+        </div>
+
+        <!-- Game Details Modal -->
+        <div id="gameModal" class="modal">
+            <div class="modal-content">
+                <span class="close-btn" id="closeModalBtn">×</span>
+                <div id="gameDetails"></div>
+            </div>
+        </div>
+
+        <!-- Update Score Modal -->
+        <div id="updateModal" class="update-modal">
+            <div class="update-modal-content">
+                <h3>Update Score</h3>
+                <div class="update-form">
+                    <label>New Score (1-10):</label>
+                    <input type="number" id="updateScore" min="1" max="10" placeholder="Score">
                 </div>
-                <div class="form-group">
-                    <label for="registerEmail">Email</label>
-                    <input type="email" id="registerEmail" required>
+                <div class="update-actions">
+                    <button class="btn" id="confirmUpdateBtn">Update</button>
+                    <button class="btn secondary" id="cancelUpdateBtn">Cancel</button>
                 </div>
-                <div class="form-group">
-                    <label for="registerDisplayName">Display Name</label>
-                    <input type="text" id="registerDisplayName">
-                </div>
-                <div class="form-group">
-                    <label for="registerPassword">Password</label>
-                    <input type="password" id="registerPassword" required>
-                </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Register</button>
-            </form>
+                <div id="updateMessage"></div>
+            </div>
         </div>
     </div>
 
-    <!-- Add to List Modal -->
-    <div id="addToListModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('addToListModal')">×</span>
-            <h2>Add to List</h2>
-            <form id="addToListForm">
-                <div class="form-group">
-                    <label for="gameStatus">Status</label>
-                    <select id="gameStatus" required>
-                        <option value="plan_to_play">Plan to Play</option>
-                        <option value="playing">Currently Playing</option>
-                        <option value="completed">Completed</option>
-                        <option value="on_hold">On Hold</option>
-                        <option value="dropped">Dropped</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="gameScore">Score (0-10)</label>
-                    <input type="number" id="gameScore" min="0" max="10" step="0.1">
-                </div>
-                <div class="form-group">
-                    <label for="gameHours">Hours Played</label>
-                    <input type="number" id="gameHours" min="0" step="0.5">
-                </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Add to List</button>
-            </form>
-        </div>
-    </div>
+    <script>
+        class GameListApp {
+            constructor() {
+                this.API_BASE = 'http://localhost:3000/api';
+                this.currentUser = null;
+                this.authToken = null;
+                this.currentView = 'search';
+                this.currentUpdateGameId = null;
+                this.authData = {}; // Store auth data in memory
+                
+                this.init();
+            }
 
-    <!-- Game Detail Modal -->
-    <div id="gameDetailModal" class="modal">
-        <div class="modal-content" style="max-width: 800px;">
-            <span class="close" onclick="closeModal('gameDetailModal')">×</span>
-            <div id="gameDetailContent"></div>
-        </div>
-    </div>
+            init() {
+                this.bindEvents();
+                this.checkAuthToken();
+            }
 
-    <script src="script.js"></script>
+            bindEvents() {
+                // Auth events
+                document.getElementById('loginForm').addEventListener('submit', (e) => this.handleLogin(e));
+                document.getElementById('registerForm').addEventListener('submit', (e) => this.handleRegister(e));
+                
+                // Tab switching
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => this.switchTab(e.target.dataset.tab));
+                });
+                
+                // Navigation events
+                document.getElementById('myGamesBtn').addEventListener('click', () => this.showMyGames());
+                document.getElementById('backToSearchBtn').addEventListener('click', () => this.showSearch());
+                document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
+                
+                // Search events
+                document.getElementById('searchBtn').addEventListener('click', () => this.searchGames());
+                document.getElementById('searchInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.searchGames();
+                });
+                
+                // Modal events
+                document.getElementById('closeModalBtn').addEventListener('click', () => this.closeModal());
+                document.getElementById('gameModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'gameModal') this.closeModal();
+                });
+
+                // Update modal events
+                document.getElementById('confirmUpdateBtn').addEventListener('click', () => this.confirmUpdate());
+                document.getElementById('cancelUpdateBtn').addEventListener('click', () => this.closeUpdateModal());
+                document.getElementById('updateModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'updateModal') this.closeUpdateModal();
+                });
+                
+                // Delegated events
+                document.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('add-to-list-btn')) {
+                        const gameId = e.target.dataset.gameId;
+                        this.addToList(gameId);
+                    } else if (e.target.classList.contains('update-btn')) {
+                        const gameId = e.target.dataset.gameId;
+                        this.showUpdateModal(gameId);
+                    } else if (e.target.classList.contains('delete-btn')) {
+                        const gameId = e.target.dataset.gameId;
+                        this.deleteFromList(gameId);
+                    }
+                });
+            }
+
+            checkAuthToken() {
+                // Check if we have stored auth data in memory
+                if (this.authData.token) {
+                    this.authToken = this.authData.token;
+                    this.verifyToken();
+                }
+            }
+
+            switchTab(tab) {
+                const loginForm = document.getElementById('loginForm');
+                const registerForm = document.getElementById('registerForm');
+                const tabs = document.querySelectorAll('.tab-btn');
+
+                tabs.forEach(t => t.classList.remove('active'));
+                
+                if (tab === 'login') {
+                    loginForm.classList.add('active');
+                    registerForm.classList.remove('active');
+                    tabs[0].classList.add('active');
+                } else {
+                    loginForm.classList.remove('active');
+                    registerForm.classList.add('active');
+                    tabs[1].classList.add('active');
+                }
+            }
+
+            async handleLogin(e) {
+                e.preventDefault();
+                const username = document.getElementById('loginUsername').value;
+                const password = document.getElementById('loginPassword').value;
+                const errorDiv = document.getElementById('loginError');
+
+                try {
+                    const response = await fetch(`${this.API_BASE}/auth/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        this.authToken = data.token;
+                        this.currentUser = data.user;
+                        this.authData = { token: data.token, user: data.user }; // Store in memory
+                        this.showMainApp();
+                    } else {
+                        this.showError(errorDiv, data.error);
+                    }
+                } catch (error) {
+                    this.showError(errorDiv, 'Network error. Please try again.');
+                }
+            }
+
+            async handleRegister(e) {
+                e.preventDefault();
+                const username = document.getElementById('regUsername').value;
+                const email = document.getElementById('regEmail').value;
+                const display_name = document.getElementById('regDisplayName').value;
+                const password = document.getElementById('regPassword').value;
+                const errorDiv = document.getElementById('registerError');
+
+                try {
+                    const response = await fetch(`${this.API_BASE}/auth/register`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, email, display_name, password })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        this.authToken = data.token;
+                        this.currentUser = data.user;
+                        this.authData = { token: data.token, user: data.user }; // Store in memory
+                        this.showMainApp();
+                    } else {
+                        this.showError(errorDiv, data.error);
+                    }
+                } catch (error) {
+                    this.showError(errorDiv, 'Network error. Please try again.');
+                }
+            }
+
+            async verifyToken() {
+                try {
+                    const response = await fetch(`${this.API_BASE}/auth/me`, {
+                        headers: { 'Authorization': `Bearer ${this.authToken}` }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.currentUser = data.user;
+                        this.showMainApp();
+                    } else {
+                        this.clearAuth();
+                    }
+                } catch (error) {
+                    this.clearAuth();
+                }
+            }
+
+            showMainApp() {
+                document.getElementById('authSection').classList.add('hidden');
+                document.getElementById('searchSection').classList.remove('hidden');
+                document.getElementById('userInfo').classList.remove('hidden');
+                document.getElementById('welcomeText').textContent = `Welcome, ${this.currentUser.display_name}!`;
+                this.currentView = 'search';
+            }
+
+            showSearch() {
+                document.getElementById('myGamesSection').classList.add('hidden');
+                document.getElementById('searchSection').classList.remove('hidden');
+                document.getElementById('backToSearchBtn').style.display = 'none';
+                this.currentView = 'search';
+            }
+
+            showMyGames() {
+                document.getElementById('searchSection').classList.add('hidden');
+                document.getElementById('myGamesSection').classList.remove('hidden');
+                document.getElementById('backToSearchBtn').style.display = 'inline-block';
+                this.currentView = 'myGames';
+                this.loadMyGames();
+            }
+
+            logout() {
+                this.clearAuth();
+                document.getElementById('authSection').classList.remove('hidden');
+                document.getElementById('searchSection').classList.add('hidden');
+                document.getElementById('myGamesSection').classList.add('hidden');
+                document.getElementById('userInfo').classList.add('hidden');
+                document.getElementById('searchResults').innerHTML = '';
+                document.getElementById('backToSearchBtn').style.display = 'none';
+            }
+
+            clearAuth() {
+                this.authData = {}; // Clear memory storage
+                this.authToken = null;
+                this.currentUser = null;
+            }
+
+            async searchGames() {
+                const searchTerm = document.getElementById('searchInput').value.trim();
+                if (!searchTerm) return;
+
+                try {
+                    const response = await fetch(`${this.API_BASE}/games?search=${encodeURIComponent(searchTerm)}`);
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        this.displaySearchResults(data.games);
+                    } else {
+                        console.error('Search failed:', data.error);
+                    }
+                } catch (error) {
+                    console.error('Search error:', error);
+                }
+            }
+
+            async loadMyGames() {
+                try {
+                    const response = await fetch(`${this.API_BASE}/user/games`, {
+                        headers: { 'Authorization': `Bearer ${this.authToken}` }
+                    });
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        this.displayMyGames(data.games);
+                    } else {
+                        console.error('Failed to fetch games:', data.error);
+                    }
+                } catch (error) {
+                    console.error('Error fetching games:', error);
+                }
+            }
+
+            displaySearchResults(games) {
+                const container = document.getElementById('searchResults');
+                
+                if (games.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No games found.</div>';
+                    return;
+                }
+
+                container.innerHTML = games.map(game => `
+                    <div class="game-card" data-game-id="${game.id}">
+                        <img src="${game.background_image || 'https://via.placeholder.com/300x200?text=No+Image'}" 
+                             alt="${game.name}" class="game-image" 
+                             onerror="this.src='https://via.placeholder.com/300x200?text=No+Image'">
+                        <div class="game-info">
+                            <div class="game-title">${game.name}</div>
+                            <div>
+                                <span class="game-rating">⭐ ${game.rating || 'N/A'}</span>
+                            </div>
+                            <div class="game-genres">
+                                ${(game.genres || []).map(genre => `<span class="genre-tag">${genre.name}</span>`).join('')}
+                            </div>
+                            ${game.description ? `<p style="color: #666; font-size: 14px; margin-top: 8px;">${game.description.substring(0, 80)}...</p>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+
+                // Add click events to game cards
+                container.querySelectorAll('.game-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        const gameId = card.dataset.gameId;
+                        this.showGameDetails(gameId);
+                    });
+                });
+            }
+
+            displayMyGames(games) {
+                const container = document.getElementById('myGamesGrid');
+                
+                if (games.length === 0) {
+                    container.innerHTML = '<div class="empty-state">Your game list is empty. Search and add some games!</div>';
+                    return;
+                }
+
+                container.innerHTML = games.map(game => `
+                    <div class="list-item">
+                        <div class="game-name">${game.name}</div>
+                        <div class="game-score-display">${game.score ? `${game.score}/10` : 'No Score'}</div>
+                        <div class="list-actions">
+                            <button class="btn small update-btn" data-game-id="${game.id}">Update</button>
+                            <button class="btn small danger delete-btn" data-game-id="${game.id}">Remove</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            async showGameDetails(gameId) {
+                try {
+                    const response = await fetch(`${this.API_BASE}/games/${gameId}`);
+                    const game = await response.json();
+
+                    if (response.ok) {
+                        document.getElementById('gameDetails').innerHTML = `
+                            <img src="${game.background_image || 'https://via.placeholder.com/700x250?text=No+Image'}" 
+                                 alt="${game.name}" class="detail-image" 
+                                 onerror="this.src='https://via.placeholder.com/700x250?text=No+Image'">
+                            <h2>${game.name}</h2>
+                            <div style="margin: 15px 0;">
+                                <span class="game-rating">⭐ ${game.rating || 'N/A'}</span>
+                                ${game.metacritic_score ? `<span class="game-rating" style="background: linear-gradient(45deg, #27ae60, #2ecc71);">🎯 ${game.metacritic_score}</span>` : ''}
+                            </div>
+                            <div class="game-genres" style="margin: 15px 0;">
+                                ${(game.genres || []).map(genre => `<span class="genre-tag">${genre.name}</span>`).join('')}
+                            </div>
+                            <p><strong>Released:</strong> ${game.released || 'Unknown'}</p>
+                            <p><strong>Playtime:</strong> ${game.playtime || 0} hours</p>
+                            ${game.publishers && game.publishers.length > 0 ? `<p><strong>Publishers:</strong> ${game.publishers.map(p => p.name).join(', ')}</p>` : ''}
+                            ${game.developers && game.developers.length > 0 ? `<p><strong>Developers:</strong> ${game.developers.map(d => d.name).join(', ')}</p>` : ''}
+                            ${game.platforms && game.platforms.length > 0 ? `<p><strong>Platforms:</strong> ${game.platforms.map(p => p.name).join(', ')}</p>` : ''}
+                            <p style="margin: 15px 0; line-height: 1.6;">${game.description || 'No description available'}</p>
+                            <div class="add-to-list">
+                                <h3>Add to My List</h3>
+                                <div style="margin: 15px 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                    <label>Score (1-10):</label>
+                                    <input type="number" id="gameScore" class="score-input" min="1" max="10" placeholder="Rate">
+                                    <button class="btn add-to-list-btn" data-game-id="${game.id}">Add to List</button>
+                                </div>
+                                <div id="addGameMessage"></div>
+                            </div>
+                        `;
+                        document.getElementById('gameModal').style.display = 'block';
+                    }
+                } catch (error) {
+                    console.error('Error fetching game details:', error);
+                }
+            }
+
+            closeModal() {
+                document.getElementById('gameModal').style.display = 'none';
+            }
+
+            showUpdateModal(gameId) {
+                this.currentUpdateGameId = gameId;
+                document.getElementById('updateScore').value = '';
+                document.getElementById('updateMessage').innerHTML = '';
+                document.getElementById('updateModal').style.display = 'block';
+            }
+
+            closeUpdateModal() {
+                document.getElementById('updateModal').style.display = 'none';
+                this.currentUpdateGameId = null;
+            }
+
+            async confirmUpdate() {
+  const score = document.getElementById('updateScore').value;
+  const messageDiv = document.getElementById('updateMessage');
+
+  if (!score || score < 1 || score > 10) {
+    this.showError(messageDiv, 'Please enter a valid score between 1 and 10');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${this.API_BASE}/user/games/${this.currentUpdateGameId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.authToken}`
+      },
+      body: JSON.stringify({
+        status: 'completed', // Keep existing status or make it dynamic
+        score: parseInt(score),
+        progress_hours: null // Include if you want to update this too
+      })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      this.showSuccess(messageDiv, 'Score updated successfully!');
+      setTimeout(() => {
+        this.closeUpdateModal();
+        this.loadMyGames(); // Refresh the list
+      }, 1500);
+    } else {
+      this.showError(messageDiv, data.error || 'Failed to update score');
+    }
+  } catch (error) {
+    this.showError(messageDiv, 'Network error. Please try again.');
+  }
+}
+            async addToList(gameId) {
+                const score = document.getElementById('gameScore').value;
+                const messageDiv = document.getElementById('addGameMessage');
+
+                try {
+                    const response = await fetch(`${this.API_BASE}/user/games/${gameId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${this.authToken}`
+                        },
+                        body: JSON.stringify({
+                            status: 'completed',
+                            score: score ? parseInt(score) : null
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        this.showSuccess(messageDiv, 'Game added to your list successfully!');
+                        // Refresh the current view if we're in my games
+                        if (this.currentView === 'myGames') {
+                            setTimeout(() => this.loadMyGames(), 1000);
+                        }
+                    } else {
+                        this.showError(messageDiv, data.error);
+                    }
+                } catch (error) {
+                    this.showError(messageDiv, 'Network error. Please try again.');
+                }
+            }
+
+            async deleteFromList(gameId) {
+                if (!confirm('Are you sure you want to remove this game from your list?')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${this.API_BASE}/user/games/${gameId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${this.authToken}`
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        this.loadMyGames(); // Refresh the list
+                    } else {
+                        alert('Error removing game: ' + data.error);
+                    }
+                } catch (error) {
+                    alert('Network error. Please try again.');
+                }
+            }
+
+            showError(element, message) {
+                element.textContent = message;
+                element.classList.remove('hidden', 'success');
+                element.classList.add('error');
+            }
+
+            showSuccess(element, message) {
+                element.textContent = message;
+                element.classList.remove('hidden', 'error');
+                element.classList.add('success');
+            }
+        }
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new GameListApp();
+        });
+    </script>
 </body>
 </html>
