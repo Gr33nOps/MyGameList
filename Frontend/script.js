@@ -6,7 +6,10 @@ class GameListApp {
         this.currentView = 'search';
         this.currentUpdateGameId = null;
         this.authData = {}; // Store auth data in memory
-        
+        this.isEditMode = false;
+        this.currentDeleteGameId = null;
+        this.currentRemoveGameId = null; // Add this line
+        this.currentRemoveGameName = null; // Add this line
         this.init();
     }
 
@@ -30,6 +33,10 @@ class GameListApp {
         document.getElementById('backToSearchBtn').addEventListener('click', () => this.showSearch());
         document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
         
+        // Edit mode events
+        document.getElementById('editListBtn').addEventListener('click', () => this.toggleEditMode(true));
+        document.getElementById('doneEditingBtn').addEventListener('click', () => this.toggleEditMode(false));
+        
         // Search events
         document.getElementById('searchBtn').addEventListener('click', () => this.searchGames());
         document.getElementById('searchInput').addEventListener('keypress', (e) => {
@@ -49,7 +56,14 @@ class GameListApp {
             if (e.target.id === 'updateModal') this.closeUpdateModal();
         });
         
-        // Delegated events
+        // Remove modal events
+        document.getElementById('confirmRemoveBtn').addEventListener('click', () => this.confirmRemove());
+        document.getElementById('cancelRemoveBtn').addEventListener('click', () => this.closeRemoveModal());
+        document.getElementById('removeModal').addEventListener('click', (e) => {
+            if (e.target.id === 'removeModal') this.closeRemoveModal();
+        });
+
+        // Update the delegated events section (replace the existing delete button logic)
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('add-to-list-btn')) {
                 const gameId = e.target.dataset.gameId;
@@ -59,7 +73,8 @@ class GameListApp {
                 this.showUpdateModal(gameId);
             } else if (e.target.classList.contains('delete-btn')) {
                 const gameId = e.target.dataset.gameId;
-                this.deleteFromList(gameId);
+                const gameName = e.target.dataset.gameName;
+                this.showRemoveModal(gameId, gameName);
             }
         });
     }
@@ -170,6 +185,8 @@ class GameListApp {
         document.getElementById('authSection').classList.add('hidden');
         document.getElementById('searchSection').classList.remove('hidden');
         document.getElementById('userInfo').classList.remove('hidden');
+        document.getElementById('myGamesBtn').style.display = 'inline-block'; // Ensure My Games button is visible
+        document.getElementById('backToSearchBtn').style.display = 'none'; // Ensure Back to Search is hidden
         document.getElementById('welcomeText').textContent = `Welcome, ${this.currentUser.display_name}!`;
         this.currentView = 'search';
     }
@@ -178,6 +195,7 @@ class GameListApp {
         document.getElementById('myGamesSection').classList.add('hidden');
         document.getElementById('searchSection').classList.remove('hidden');
         document.getElementById('backToSearchBtn').style.display = 'none';
+        document.getElementById('myGamesBtn').style.display = 'inline-block'; // Show My Games button
         this.currentView = 'search';
     }
 
@@ -185,8 +203,16 @@ class GameListApp {
         document.getElementById('searchSection').classList.add('hidden');
         document.getElementById('myGamesSection').classList.remove('hidden');
         document.getElementById('backToSearchBtn').style.display = 'inline-block';
+        document.getElementById('myGamesBtn').style.display = 'none'; // Hide My Games button
         this.currentView = 'myGames';
         this.loadMyGames();
+    }
+
+    toggleEditMode(isEdit) {
+        this.isEditMode = isEdit;
+        document.getElementById('editListBtn').style.display = isEdit ? 'none' : 'inline-block';
+        document.getElementById('doneEditingBtn').style.display = isEdit ? 'inline-block' : 'none';
+        this.loadMyGames(); // Refresh the list to show/hide edit buttons
     }
 
     logout() {
@@ -275,6 +301,7 @@ class GameListApp {
         });
     }
 
+    // Update the displayMyGames method to remove inline confirmation and add game name to dataset
     displayMyGames(games) {
         const container = document.getElementById('myGamesGrid');
         
@@ -283,84 +310,70 @@ class GameListApp {
             return;
         }
 
-        container.innerHTML = games.map(game => `
-            <div class="list-item">
-                <div class="game-name">${game.name}</div>
-                <div class="game-score-display">${game.score ? `${game.score}/10` : 'No Score'}</div>
-                <div class="list Deduction: list-actions">
-                    <button class="btn small update-btn" data-game-id="${game.id}">Update</button>
-                    <button class="btn small danger delete-btn" data-game-id="${game.id}">Remove</button>
-                </div>
-            </div>
-        `).join('');
-    }
-    
-    async showGameDetails(gameId) {
-    try {
-        const response = await fetch(`${this.API_BASE}/games/${gameId}`);
-        const game = await response.json();
-
-        // Enhanced date formatting with validation
-        let releasedDate = 'Unknown';
-        if (game.released) {
-            try {
-                // Parse date safely (expecting YYYY-MM-DD)
-                const [year, month, day] = game.released.split('-');
-                const dateObj = new Date(year, month - 1, day); // Months are 0-indexed in JS
-                
-                // Validate the date
-                if (!isNaN(dateObj.getTime())) {
-                    releasedDate = dateObj.toLocaleDateString('en-GB', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric'
-                    }); // Use 'en-GB' for "25 September 2013" format
-                } else {
-                    console.warn('Invalid date format received:', game.released);
-                }
-            } catch (e) {
-                console.error('Date formatting error:', e);
-            }
-        }
-
-        if (response.ok) {
-            document.getElementById('gameDetails').innerHTML = `
-                <img src="${game.background_image || 'https://via.placeholder.com/700x250?text=No+Image'}" 
-                     alt="${game.name}" class="detail-image" 
-                     onerror="this.src='https://via.placeholder.com/700x250?text=No+Image'">
-                <h2>${game.name}</h2>
-                <div style="margin: 15px 0;">
-                    <span class="game-rating">⭐ ${game.rating || 'N/A'}</span>
-                    ${game.metacritic_score ? `<span class="game-rating" style="background: linear-gradient(45deg, #27ae60, #2ecc71);">🎯 ${game.metacritic_score}</span>` : ''}
-                </div>
-                <div class="game-genres" style="margin: 15px 0;">
-                    ${(game.genres || []).map(genre => `<span class="genre-tag">${genre.name}</span>`).join('')}
-                </div>
-                <p><strong>Released:</strong> ${releasedDate}</p>
-                <p><strong>Playtime:</strong> ${game.playtime || 0} hours</p>
-                ${game.publishers && game.publishers.length > 0 ? `<p><strong>Publishers:</strong> ${game.publishers.map(p => p.name).join(', ')}</p>` : ''}
-                ${game.developers && game.developers.length > 0 ? `<p><strong>Developers:</strong> ${game.developers.map(d => d.name).join(', ')}</p>` : ''}
-                ${game.platforms && game.platforms.length > 0 ? `<p><strong>Platforms:</strong> ${game.platforms.map(p => p.name).join(', ')}</p>` : ''}
-                <p style="margin: 15px 0; line-height: 1.6;">${game.description || 'No description available'}</p>
-                <div class="add-to-list">
-                    <h3>Add to My List</h3>
-                    <div style="margin: 15px 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                        <label>Score (1-10):</label>
-                        <input type="number" id="gameScore" class="score-input" min="1" max="10" placeholder="Rate">
-                        <button class="btn add-to-list-btn" data-game-id="${game.id}">Add to List</button>
+        if (this.isEditMode) {
+            // Edit mode view with update/remove buttons
+            container.innerHTML = games.map(game => `
+                <div class="list-item" data-game-id="${game.id}">
+                    <div class="game-name">${game.name}</div>
+                    <div class="game-score-display">${game.score ? `${game.score}/10` : 'No Score'}</div>
+                    <div class="list-actions">
+                        <button class="btn small update-btn" data-game-id="${game.id}">Update</button>
+                        <button class="btn small danger delete-btn" data-game-id="${game.id}" data-game-name="${game.name}">Remove</button>
                     </div>
-                    <div id="addGameMessage"></div>
                 </div>
-            `;
-            document.getElementById('gameModal').style.display = 'block';
+            `).join('');
         } else {
-            console.error('Failed to fetch game details:', game.error);
+            // Normal view without edit buttons
+            container.innerHTML = games.map(game => `
+                <div class="list-item" data-game-id="${game.id}">
+                    <div class="game-name">${game.name}</div>
+                    <div class="game-score-display">${game.score ? `${game.score}/10` : 'No Score'}</div>
+                </div>
+            `).join('');
         }
-    } catch (error) {
-        console.error('Error fetching game details:', error);
     }
-}
-    
+
+    async showGameDetails(gameId) {
+        try {
+            const response = await fetch(`${this.API_BASE}/games/${gameId}`);
+            const game = await response.json();
+
+            if (response.ok) {
+                document.getElementById('gameDetails').innerHTML = `
+                    <img src="${game.background_image || 'https://via.placeholder.com/700x250?text=No+Image'}" 
+                         alt="${game.name}" class="detail-image" 
+                         onerror="this.src='https://via.placeholder.com/700x250?text=No+Image'">
+                    <h2>${game.name}</h2>
+                    <div style="margin: 15px 0;">
+                        <span class="game-rating">⭐ ${game.rating || 'N/A'}</span>
+                        ${game.metacritic_score ? `<span class="game-rating" style="background: linear-gradient(45deg, #27ae60, #2ecc71);">🎯 ${game.metacritic_score}</span>` : ''}
+                    </div>
+                    <div class="game-genres" style="margin: 15px 0;">
+                        ${(game.genres || []).map(genre => `<span class="genre-tag">${genre.name}</span>`).join('')}
+                    </div>
+                    <p><strong>Released:</strong> ${game.released || 'Unknown'}</p>
+                    <p><strong>Playtime:</strong> ${game.playtime || 0} hours</p>
+                    ${game.publishers && game.publishers.length > 0 ? `<p><strong>Publishers:</strong> ${game.publishers.map(p => p.name).join(', ')}</p>` : ''}
+                    ${game.developers && game.developers.length > 0 ? `<p><strong>Developers:</strong> ${game.developers.map(d => d.name).join(', ')}</p>` : ''}
+                    ${game.platforms && game.platforms.length > 0 ? `<p><strong>Platforms:</strong> ${game.platforms.map(p => p.name).join(', ')}</p>` : ''}
+                    <p style="margin: 15px 0; line-height: 1.6;">${game.description || 'No description available'}</p>
+                    <div class="add-to-list">
+                        <h3>Add to My List</h3>
+                        <div style="margin: 15px 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <label>Score (1-10):</label>
+                            <input type="number" id="gameScore" class="score-input" min="1" max="10" placeholder="Score">
+                            <button class="btn add-to-list-btn" data-game-id="${game.id}">Add to List</button>
+                        </div>
+                        <div id="addGameMessage"></div>
+                    </div>
+                `;
+                document.getElementById('gameModal').style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Error fetching game details:', error);
+        }
+    }
+
     closeModal() {
         document.getElementById('gameModal').style.display = 'none';
     }
@@ -375,6 +388,48 @@ class GameListApp {
     closeUpdateModal() {
         document.getElementById('updateModal').style.display = 'none';
         this.currentUpdateGameId = null;
+    }
+
+    // Add these new methods for remove modal functionality
+    showRemoveModal(gameId, gameName) {
+        this.currentRemoveGameId = gameId;
+        this.currentRemoveGameName = gameName;
+        document.getElementById('removeGameText').textContent = `Are you sure you want to remove "${gameName}" from your list?`;
+        document.getElementById('removeMessage').innerHTML = '';
+        document.getElementById('removeModal').style.display = 'block';
+    }
+
+    closeRemoveModal() {
+        document.getElementById('removeModal').style.display = 'none';
+        this.currentRemoveGameId = null;
+        this.currentRemoveGameName = null;
+    }
+
+    async confirmRemove() {
+        const messageDiv = document.getElementById('removeMessage');
+
+        try {
+            const response = await fetch(`${this.API_BASE}/user/games/${this.currentRemoveGameId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                this.showSuccess(messageDiv, `"${this.currentRemoveGameName}" removed successfully!`);
+                setTimeout(() => {
+                    this.closeRemoveModal();
+                    this.loadMyGames(); // Refresh the list
+                }, 1500);
+            } else {
+                this.showError(messageDiv, data.error || 'Failed to remove game');
+            }
+        } catch (error) {
+            this.showError(messageDiv, 'Network error. Please try again.');
+        }
     }
 
     async confirmUpdate() {
@@ -394,9 +449,9 @@ class GameListApp {
                     'Authorization': `Bearer ${this.authToken}`
                 },
                 body: JSON.stringify({
-                    status: 'completed',
+                    status: 'completed', // Keep existing status or make it dynamic
                     score: parseInt(score),
-                    progress_hours: null
+                    progress_hours: null // Include if you want to update this too
                 })
             });
 
@@ -406,7 +461,7 @@ class GameListApp {
                 this.showSuccess(messageDiv, 'Score updated successfully!');
                 setTimeout(() => {
                     this.closeUpdateModal();
-                    this.loadMyGames();
+                    this.loadMyGames(); // Refresh the list
                 }, 1500);
             } else {
                 this.showError(messageDiv, data.error || 'Failed to update score');
@@ -437,6 +492,7 @@ class GameListApp {
 
             if (response.ok) {
                 this.showSuccess(messageDiv, 'Game added to your list successfully!');
+                // Refresh the current view if we're in my games
                 if (this.currentView === 'myGames') {
                     setTimeout(() => this.loadMyGames(), 1000);
                 }
@@ -449,9 +505,7 @@ class GameListApp {
     }
 
     async deleteFromList(gameId) {
-        if (!confirm('Are you sure you want to remove this game from your list?')) {
-            return;
-        }
+        if (!gameId) return;
 
         try {
             const response = await fetch(`${this.API_BASE}/user/games/${gameId}`, {
@@ -464,7 +518,8 @@ class GameListApp {
             const data = await response.json();
 
             if (response.ok) {
-                this.loadMyGames();
+                this.hideDeleteConfirmation();
+                this.loadMyGames(); // Refresh the list
             } else {
                 alert('Error removing game: ' + data.error);
             }

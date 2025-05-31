@@ -78,7 +78,11 @@
 
         <!-- My Games Section -->
         <div id="myGamesSection" class="section hidden">
-            <h2 style="margin-bottom: 30px; text-align: center; color: #333;">My Game List</h2>
+            <div class="list-header">
+                <h2 style="color: #333;">My Game List</h2>
+                <button id="editListBtn" class="btn secondary small">Edit List</button>
+                <button id="doneEditingBtn" class="btn success" style="display: none;">Done</button>
+            </div>
             <div id="myGamesGrid" class="my-games-list"></div>
         </div>
 
@@ -89,23 +93,37 @@
                 <div id="gameDetails"></div>
             </div>
         </div>
-
-        <!-- Update Score Modal -->
+        
+        <!-- Update Modal -->
         <div id="updateModal" class="update-modal">
             <div class="update-modal-content">
-                <h3>Update Score</h3>
+                <h3>Update Game Score</h3>
                 <div class="update-form">
-                    <label>New Score (1-10):</label>
+                    <label for="updateScore">Enter New Score (1-10):</label>
                     <input type="number" id="updateScore" min="1" max="10" placeholder="Score">
+                    <div id="updateMessage"></div>
                 </div>
                 <div class="update-actions">
-                    <button class="btn" id="confirmUpdateBtn">Update</button>
-                    <button class="btn secondary" id="cancelUpdateBtn">Cancel</button>
+                    <button id="confirmUpdateBtn" class="btn">Confirm</button>
+                    <button id="cancelUpdateBtn" class="btn secondary">Cancel</button>
                 </div>
-                <div id="updateMessage"></div>
             </div>
         </div>
-    </div>
+
+        <!-- Remove Modal -->
+        <div id="removeModal" class="remove-modal">
+            <div class="remove-modal-content">
+                <h3>Remove Game</h3>
+                <div class="remove-form">
+                    <p id="removeGameText"></p>
+                    <div id="removeMessage"></div>
+                </div>
+                <div class="remove-actions">
+                    <button id="confirmRemoveBtn" class="btn">Confirm</button>
+                    <button id="cancelRemoveBtn" class="btn secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
 
     <script src="script.js"></script>
 </body>
