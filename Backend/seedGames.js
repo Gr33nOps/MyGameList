@@ -2,19 +2,22 @@ const axios = require('axios');
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
+const startPage = parseInt(process.argv[2]) || 1;
+const pagesToSeed = parseInt(process.argv[3]) || 5;
+
 // Database connection configuration
 const dbConfig = {
-    host: 'localhost',
-    user: 'zain',
-    password: '123',
-    database: 'MY_GAME_LIST',
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
 };
 
 // RAWG API configuration
-const RAWG_API_KEY = '05cdd64f4b2f46779f83045a1bd3b37b';
+const RAWG_API_KEY = process.env.RAWG_API_KEY;
 const RAWG_BASE_URL = 'https://api.rawg.io/api';
 const DELAY_BETWEEN_REQUESTS = 1000; // 1 second delay to respect rate limits
 
@@ -464,44 +467,28 @@ class GameSeeder {
     }
 
     // Main seeding function
-    async seedGames(maxPages = 5) {
+    async seedGames(startPage = 1, maxPages = 5) {
         try {
             console.log('🚀 Starting game seeding process...');
-            console.log(`📊 Will process up to ${maxPages} pages of games`);
+            console.log(`📊 Will process ${maxPages} pages starting from page ${startPage}`);
 
-            let processedCount = 0;
-            let totalGames = 0;
+            for (let page = startPage; page < startPage + maxPages; page++) {
+                console.log(`\n📄 Processing page ${page}...`);
 
-            for (let page = 1; page <= maxPages; page++) {
-                console.log(`\n📄 Processing page ${page}/${maxPages}...`);
-                
                 const gamesData = await this.fetchGamesFromRAWG(page);
                 if (!gamesData || !gamesData.results) {
                     console.log(`⚠️ No games found on page ${page}`);
                     continue;
                 }
 
-                totalGames = gamesData.count;
-                console.log(`📈 Found ${gamesData.results.length} games on this page`);
-
                 for (const game of gamesData.results) {
                     await this.processGame(game);
-                    processedCount++;
                 }
-
-                console.log(`✅ Completed page ${page}. Processed ${processedCount} games so far.`);
-                
-                // Add delay between pages
-                await this.delay(DELAY_BETWEEN_REQUESTS);
             }
 
-            console.log(`\n🎉 Seeding completed!`);
-            console.log(`📊 Total games processed: ${processedCount}`);
-            console.log(`📊 Total games available in RAWG: ${totalGames}`);
-
+            console.log('✅ Game seeding completed!');
         } catch (error) {
             console.error('❌ Error during seeding process:', error.message);
-            throw error;
         }
     }
 }
@@ -521,7 +508,7 @@ async function main() {
         
         // Seed games (adjust maxPages as needed - each page has ~40 games)
         // Start with 3 pages (120 games) for testing, increase for production
-        await seeder.seedGames(3);
+        await seeder.seedGames(startPage, pagesToSeed);
         
     } catch (error) {
         console.error('❌ Seeding failed:', error.message);
