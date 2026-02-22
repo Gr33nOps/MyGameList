@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation Bar -->
+        <nav class="navbar">
+            <div class="nav-brand">🎮 My Game List</div>
+            <div class="nav-actions">
+                <a href="home.html" class="btn btn-secondary">Back to Home</a>
+            </div>
+        </nav>
+
+        <!-- Profile Section -->
+        <div class="profile-section">
+            <div class="profile-header">
+                <h2>My Profile</h2>
+            </div>
+
+            <!-- Profile Display Mode -->
+            <div id="profileDisplay" class="profile-content">
+                <div class="profile-avatar-section">
+                    <div class="profile-avatar">
+                        <img id="displayAvatar" src="" alt="Profile Avatar" onerror="this.src='https://ui-avatars.com/api/?name=User&size=200&background=3b82f6&color=fff&bold=true'">
+                    </div>
+                    <div class="profile-stats">
+                        <div class="stat-item">
+                            <span class="stat-value" id="userLevel">1</span>
+                            <span class="stat-label">Level</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="totalGames">0</span>
+                            <span class="stat-label">Games Played</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="followersCount">0</span>
+                            <span class="stat-label">Followers</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="followingCount">0</span>
+                            <span class="stat-label">Following</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-details">
+                    <div class="detail-item">
+                        <label>Display Name</label>
+                        <div class="detail-value" id="displayName">-</div>
+                    </div>
+                    <div class="detail-item">
+                        <label>Username</label>
+                        <div class="detail-value" id="displayUsername">-</div>
+                    </div>
+                    <div class="detail-item">
+                        <label>Email</label>
+                        <div class="detail-value" id="displayEmail">-</div>
+                    </div>
+                    <div class="detail-item">
+                        <label>Member Since</label>
+                        <div class="detail-value" id="displayCreatedAt">-</div>
+                    </div>
+                </div>
+
+                <div class="profile-actions">
+                    <button id="editProfileBtn" class="btn btn-primary">Edit Profile</button>
+                    <button id="changePasswordBtn" class="btn btn-secondary">Change Password</button>
+                </div>
+            </div>
+
+            <!-- Profile Edit Mode -->
+            <div id="profileEdit" class="profile-content hidden">
+                <form id="editProfileForm">
+                    <div class="edit-avatar-section">
+                        <div class="profile-avatar">
+                            <img id="editAvatarPreview" src="" alt="Profile Avatar" onerror="this.src='https://ui-avatars.com/api/?name=User&size=200&background=3b82f6&color=fff&bold=true'">
+                        </div>
+                        <div class="avatar-input-group">
+                            <label>Avatar URL</label>
+                            <input type="url" id="editAvatarUrl" class="form-input" placeholder="Enter image URL">
+                            <small>Enter a direct link to your profile image</small>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Display Name</label>
+                        <input type="text" id="editDisplayName" class="form-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="editEmail" class="form-input" required>
+                    </div>
+
+                    <div id="editMessage"></div>
+
+                    <div class="profile-actions">
+                        <button type="submit" class="btn btn-success">Save Changes</button>
+                        <button type="button" id="cancelEditBtn" class="btn btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Change Password Modal -->
+        <div id="passwordModal" class="modal">
+            <div class="modal-content password-modal-content">
+                <span class="close-btn" id="closePasswordModal">×</span>
+                <h3>Change Password</h3>
+                <form id="changePasswordForm">
+                    <div class="form-group">
+                        <label>Current Password</label>
+                        <input type="password" id="currentPassword" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>New Password</label>
+                        <input type="password" id="newPassword" class="form-input" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm New Password</label>
+                        <input type="password" id="confirmPassword" class="form-input" required minlength="6">
+                    </div>
+                    <div id="passwordMessage"></div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn btn-primary">Update Password</button>
+                        <button type="button" id="cancelPasswordBtn" class="btn btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="profile.js"></script>
+</body>
+</html>

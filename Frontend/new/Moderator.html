@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moderator Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation Bar -->
+        <nav class="navbar">
+            <div class="nav-brand">Moderator Dashboard</div>
+            <div class="nav-actions">
+                <a href="home.html" class="btn btn-secondary">Back to Home</a>
+            </div>
+        </nav>
+
+        <!-- Moderator Stats -->
+        <div class="admin-stats">
+            <div class="stat-card">
+                <div class="stat-info">
+                    <div class="stat-value" id="totalUsers">0</div>
+                    <div class="stat-label">Total Users</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-info">
+                    <div class="stat-value" id="totalModerators">0</div>
+                    <div class="stat-label">Moderators</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-info">
+                    <div class="stat-value" id="bannedUsers">0</div>
+                    <div class="stat-label">Banned Users</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Moderator Tabs -->
+        <div class="admin-tabs">
+            <button class="admin-tab-btn active" data-tab="manage-users">Manage Users</button>
+            <button class="admin-tab-btn" data-tab="activity-log">Activity Log</button>
+        </div>
+
+        <!-- Manage Users Section -->
+        <div id="manage-users" class="admin-section active">
+            <div class="section-card">
+                <div class="section-header">
+                    <h2>Manage Users</h2>
+                    <div class="header-actions">
+                        <input type="text" id="searchUsers" class="search-input" placeholder="Search users...">
+                        <button class="btn btn-primary" id="searchUsersBtn">Search</button>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="warning-box">
+                        <strong>Ban Policy:</strong> Banned users cannot log in or access the platform. Users banned for more than 30 days will be automatically deleted.
+                    </div>
+                    <div class="info-box">
+                        <strong>Moderator Powers:</strong> Moderators can ban/unban regular users. You cannot ban admins or other moderators.
+                    </div>
+                    <div id="usersTableLoading" class="loading-indicator">
+                        <div class="spinner"></div>
+                        <p>Loading users...</p>
+                    </div>
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Display Name</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Joined</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <!-- Users will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination">
+                        <button id="prevUsersPage" class="btn" disabled>← Previous</button>
+                        <span id="usersPageInfo" class="page-info">Page 1</span>
+                        <button id="nextUsersPage" class="btn">Next →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Log Section -->
+        <div id="activity-log" class="admin-section">
+            <div class="section-card">
+                <div class="section-header">
+                    <h2>Activity Log</h2>
+                    <div class="header-actions">
+                        <select id="activityFilter" class="search-input">
+                            <option value="">All Actions</option>
+                            <option value="ban_user">Ban User</option>
+                            <option value="unban_user">Unban User</option>
+                            <option value="add_game">Add Game</option>
+                            <option value="edit_game">Edit Game</option>
+                            <option value="delete_game">Delete Game</option>
+                            <option value="seed_games">Seed Games</option>
+                            <option value="promote_moderator">Promote Moderator</option>
+                            <option value="demote_moderator">Demote Moderator</option>
+                            <option value="delete_user">Delete User</option>
+                        </select>
+                        <button class="btn btn-primary" id="filterActivityBtn">Filter</button>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="info-box">
+                        <strong>Activity Log:</strong> This shows all moderation actions taken by you and other moderators. Use the filter to view specific types of actions.
+                    </div>
+                    <div id="activityTableLoading" class="loading-indicator">
+                        <div class="spinner"></div>
+                        <p>Loading activity...</p>
+                    </div>
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Date/Time</th>
+                                    <th>Moderator</th>
+                                    <th>Action</th>
+                                    <th>Target</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activityTableBody">
+                                <!-- Activity will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination">
+                        <button id="prevActivityPage" class="btn" disabled>← Previous</button>
+                        <span id="activityPageInfo" class="page-info">Page 1</span>
+                        <button id="nextActivityPage" class="btn">Next →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ban User Modal -->
+        <div id="banModal" class="modal">
+            <div class="modal-content ban-modal-content">
+                <span class="close-btn" id="closeBanModal">×</span>
+                <h3>Ban User</h3>
+                <p class="modal-p">
+                    You are about to ban <strong id="banUsername"></strong>. 
+                    This will prevent them from logging in and accessing the platform.
+                </p>
+                <div class="warning-box">
+                    <strong>Warning:</strong> Users banned for more than 30 days will be automatically deleted from the system.
+                </div>
+                
+                <div class="form-group">
+                    <label for="banReason">Reason (optional)</label>
+                    <textarea id="banReason" class="form-textarea" rows="3" placeholder="Enter reason for ban..."></textarea>
+                </div>
+
+                <div id="banMessage"></div>
+
+                <div class="modal-actions">
+                    <button class="btn btn-warning" id="confirmBan">Ban User</button>
+                    <button class="btn btn-secondary" id="cancelBan">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="moderator.js"></script>
+</body>
+</html>

@@ -71,18 +71,83 @@
         <div id="searchSection" class="section hidden">
             <div class="search-bar">
                 <input type="text" id="searchInput" class="search-input" placeholder="Search for games...">
+                <select id="sortBy" class="sort-select">
+                    <option value="name">Name</option>
+                    <option value="release">Release Date</option>
+                    <option value="rating">Rating</option>
+                </select>
                 <button id="searchBtn" class="btn">Search</button>
+                <button id="filterBtn" class="btn secondary">Filters</button>
+            </div>
+            <!-- Filter Section (Hidden by Default) -->
+            <div id="filterSection" class="filter-section hidden">
+                <h3>Filter Results</h3>
+                <div class="filter-group">
+                    <div class="form-group">
+                        <label for="genre">Genre:</label>
+                        <select id="genre" class="filter-select">
+                            <option value="">All Genres</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="publisher">Publisher:</label>
+                        <select id="publisher" class="filter-select">
+                            <option value="">All Publishers</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="developer">Developer:</label>
+                        <select id="developer" class="filter-select">
+                            <option value="">All Developers</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="platform">Platform:</label>
+                        <select id="platform" class="filter-select">
+                            <option value="">All Platforms</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="applyFiltersBtn" class="btn">Apply Filters</button>
+                <button id="resetFiltersBtn" class="btn secondary">Reset Filters</button>
+            </div>
+            <!-- Top Pagination -->
+            <div class="pagination top-pagination" style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; align-items: center;">
+                <button id="topPrevPageBtn" class="btn" disabled>Previous</button>
+                <span id="pageInfo" class="page-info">Page 1</span>
+                <button id="topNextPageBtn" class="btn">Next</button>
             </div>
             <div id="searchResults" class="games-grid"></div>
+            <!-- Bottom Pagination -->
+            <div class="pagination bottom-pagination" style="display: flex; justify-content: center; gap: 10px; margin-top: 20px; align-items: center;">
+                <button id="prevPageBtn" class="btn" disabled>Previous</button>
+                <span id="bottomPageInfo" class="page-info">Page 1</span>
+                <button id="nextPageBtn" class="btn">Next</button>
+            </div>
+            <!-- Sentinel div for infinite scroll -->
+            <div id="sentinel"></div>
         </div>
 
         <!-- My Games Section -->
         <div id="myGamesSection" class="section hidden">
             <div class="list-header">
-                <h2 style="color: #333;">My Game List</h2>
-                <button id="editListBtn" class="btn secondary small">Edit List</button>
-                <button id="doneEditingBtn" class="btn success" style="display: none;">Done</button>
+                <h2 style="color: #fff; margin: 0;">My Game List</h2>
+                <div class="list-header-actions">
+                    <select id="myGamesSort" class="sort-select" style="margin-left: auto;">
+                        <option value="recently_added">Recently Added</option>
+                        <option value="name">Name (A-Z)</option>
+                        <option value="name_desc">Name (Z-A)</option>
+                        <option value="score_high">My Score (High to Low)</option>
+                        <option value="score_low">My Score (Low to High)</option>
+                        <option value="rating_high">Rating (High to Low)</option>
+                        <option value="rating_low">Rating (Low to High)</option>
+                    </select>
+                    <button id="editListBtn" class="btn secondary small">Edit List</button>
+                    <button id="doneEditingBtn" class="btn success" style="display: none;">Done</button>
+                </div>
             </div>
+            
+            <!-- List view for My Games -->
             <div id="myGamesGrid" class="my-games-list"></div>
         </div>
 
@@ -124,6 +189,7 @@
                 </div>
             </div>
         </div>
+    </div>
 
     <script src="script.js"></script>
 </body>

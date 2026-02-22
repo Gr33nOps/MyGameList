@@ -31,6 +31,13 @@ class GameSeeder {
         this.processedGenres = new Set();
         this.processedTags = new Set();
         this.processedStores = new Set();
+        this.stats = {
+            totalGames: 0,
+            successfulInserts: 0,
+            skippedGames: 0,
+            failedGames: 0,
+            duplicateGames: 0
+        };
     }
 
     async connect() {
@@ -55,52 +62,82 @@ class GameSeeder {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    // Fetch games from RAWG API with pagination
+    // Fetch games from RAWG API with pagination - IMPROVED
     async fetchGamesFromRAWG(page = 1, pageSize = 40) {
         try {
+            console.log(`📡 Fetching games from RAWG API - Page ${page}`);
+            
             const response = await axios.get(`${RAWG_BASE_URL}/games`, {
                 params: {
                     key: RAWG_API_KEY,
                     page: page,
                     page_size: pageSize,
-                    ordering: '-rating,-metacritic',
-                    metacritic: '70,100' // Only games with good ratings
-                }
+                    ordering: '-rating,-metacritic' // Removed metacritic filter to get more games
+                    // Removed metacritic: '70,100' - this was limiting results significantly
+                },
+                timeout: 10000 // 10 second timeout
             });
+            
+            console.log(`📊 Found ${response.data.results?.length || 0} games on page ${page}`);
+            console.log(`📈 Total games available: ${response.data.count}`);
+            
             return response.data;
         } catch (error) {
             console.error(`❌ Error fetching games from page ${page}:`, error.message);
+            if (error.response) {
+                console.error(`   Status: ${error.response.status}`);
+                console.error(`   Response: ${JSON.stringify(error.response.data)}`);
+            }
             return null;
         }
     }
 
-    // Fetch detailed game information
+    // Fetch detailed game information with better error handling
     async fetchGameDetails(gameId) {
         try {
             const response = await axios.get(`${RAWG_BASE_URL}/games/${gameId}`, {
                 params: {
                     key: RAWG_API_KEY
-                }
+                },
+                timeout: 10000
             });
             return response.data;
         } catch (error) {
             console.error(`❌ Error fetching game details for ID ${gameId}:`, error.message);
+            if (error.response?.status === 404) {
+                console.log(`   Game ${gameId} not found (404)`);
+            }
             return null;
         }
     }
 
-    // Fetch game screenshots
+    // Fetch game screenshots with better error handling
     async fetchGameScreenshots(gameId) {
         try {
             const response = await axios.get(`${RAWG_BASE_URL}/games/${gameId}/screenshots`, {
                 params: {
                     key: RAWG_API_KEY
-                }
+                },
+                timeout: 10000
             });
             return response.data.results || [];
         } catch (error) {
             console.error(`❌ Error fetching screenshots for game ID ${gameId}:`, error.message);
             return [];
+        }
+    }
+
+    // Check if game already exists - IMPROVED
+    async gameExists(rawgId) {
+        try {
+            const [rows] = await this.connection.execute(
+                `SELECT id FROM games WHERE rawg_id = ?`,
+                [rawgId]
+            );
+            return rows.length > 0;
+        } catch (error) {
+            console.error('❌ Error checking game existence:', error.message);
+            return false;
         }
     }
 
@@ -224,22 +261,33 @@ class GameSeeder {
         }
     }
 
-    // Insert game
+    // Insert game with better error handling and logging
     async insertGame(gameData) {
         if (this.processedGames.has(gameData.id)) {
+            this.stats.duplicateGames++;
+            return null;
+        }
+
+        // Check if game already exists in database
+        if (await this.gameExists(gameData.id)) {
+            console.log(`⚠️ Game ${gameData.name} already exists in database`);
+            this.stats.duplicateGames++;
+            this.processedGames.add(gameData.id);
             return null;
         }
 
         try {
+            console.log(`💾 Inserting game: ${gameData.name} (ID: ${gameData.id})`);
+            
             const [result] = await this.connection.execute(
-                `INSERT IGNORE INTO games (
+                `INSERT INTO games (
                     rawg_id, name, slug, description, released, background_image, 
                     rating, metacritic_score, playtime, created_at, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
                 [
                     gameData.id,
-                    gameData.name,
-                    gameData.slug,
+                    gameData.name || 'Unknown',
+                    gameData.slug || '',
                     gameData.description_raw || gameData.description || '',
                     gameData.released || null,
                     gameData.background_image || '',
@@ -251,17 +299,24 @@ class GameSeeder {
 
             if (result.affectedRows > 0) {
                 this.processedGames.add(gameData.id);
+                this.stats.successfulInserts++;
+                console.log(`✅ Successfully inserted game: ${gameData.name}`);
                 return result.insertId;
             }
             return null;
         } catch (error) {
-            console.error('❌ Error inserting game:', error.message);
+            console.error(`❌ Error inserting game ${gameData.name}:`, error.message);
+            this.stats.failedGames++;
             return null;
         }
     }
 
     // Insert game screenshots
     async insertGameScreenshots(gameDbId, rawgGameId, screenshots) {
+        if (!screenshots || screenshots.length === 0) return;
+        
+        console.log(`📸 Inserting ${screenshots.length} screenshots for game ID ${rawgGameId}`);
+        
         for (const screenshot of screenshots) {
             try {
                 await this.connection.execute(
@@ -274,10 +329,13 @@ class GameSeeder {
         }
     }
 
-    // Create junction table relationships
+    // Create junction table relationships with better error handling
     async createGameRelationships(gameDbId, rawgGameId, gameData) {
+        console.log(`🔗 Creating relationships for game ID ${rawgGameId}`);
+        
         // Publishers
-        if (gameData.publishers) {
+        if (gameData.publishers && gameData.publishers.length > 0) {
+            console.log(`   📚 Processing ${gameData.publishers.length} publishers`);
             for (const publisher of gameData.publishers) {
                 const publisherId = await this.insertPublisher(publisher);
                 if (publisherId) {
@@ -300,7 +358,8 @@ class GameSeeder {
         }
 
         // Developers
-        if (gameData.developers) {
+        if (gameData.developers && gameData.developers.length > 0) {
+            console.log(`   👨‍💻 Processing ${gameData.developers.length} developers`);
             for (const developer of gameData.developers) {
                 const developerId = await this.insertDeveloper(developer);
                 if (developerId) {
@@ -323,7 +382,8 @@ class GameSeeder {
         }
 
         // Platforms
-        if (gameData.platforms) {
+        if (gameData.platforms && gameData.platforms.length > 0) {
+            console.log(`   🎮 Processing ${gameData.platforms.length} platforms`);
             for (const platform of gameData.platforms) {
                 const platformId = await this.insertPlatform(platform);
                 if (platformId) {
@@ -346,7 +406,8 @@ class GameSeeder {
         }
 
         // Genres
-        if (gameData.genres) {
+        if (gameData.genres && gameData.genres.length > 0) {
+            console.log(`   🎯 Processing ${gameData.genres.length} genres`);
             for (const genre of gameData.genres) {
                 const genreId = await this.insertGenre(genre);
                 if (genreId) {
@@ -369,7 +430,8 @@ class GameSeeder {
         }
 
         // Tags
-        if (gameData.tags) {
+        if (gameData.tags && gameData.tags.length > 0) {
+            console.log(`   🏷️ Processing ${gameData.tags.length} tags`);
             for (const tag of gameData.tags) {
                 const tagId = await this.insertTag(tag);
                 if (tagId) {
@@ -392,7 +454,8 @@ class GameSeeder {
         }
 
         // Stores
-        if (gameData.stores) {
+        if (gameData.stores && gameData.stores.length > 0) {
+            console.log(`   🏪 Processing ${gameData.stores.length} stores`);
             for (const store of gameData.stores) {
                 const storeId = await this.insertStore(store);
                 if (storeId) {
@@ -415,22 +478,32 @@ class GameSeeder {
         }
     }
 
-    // Process a single game with full details
+    // Process a single game with full details - IMPROVED
     async processGame(gameBasicData) {
+        this.stats.totalGames++;
+        
         try {
-            console.log(`🎮 Processing game: ${gameBasicData.name}`);
+            console.log(`\n🎮 Processing game ${this.stats.totalGames}: ${gameBasicData.name} (ID: ${gameBasicData.id})`);
+
+            // Check if already processed
+            if (this.processedGames.has(gameBasicData.id)) {
+                console.log(`⚠️ Game ${gameBasicData.name} already processed in this session`);
+                this.stats.skippedGames++;
+                return;
+            }
 
             // Get detailed game information
             const gameDetails = await this.fetchGameDetails(gameBasicData.id);
             if (!gameDetails) {
                 console.log(`⚠️ Skipping game ${gameBasicData.name} - could not fetch details`);
+                this.stats.skippedGames++;
                 return;
             }
 
             // Insert the game
             const gameDbId = await this.insertGame(gameDetails);
             if (!gameDbId) {
-                console.log(`⚠️ Game ${gameBasicData.name} already exists or failed to insert`);
+                console.log(`⚠️ Game ${gameBasicData.name} was not inserted (may already exist)`);
                 return;
             }
 
@@ -463,32 +536,72 @@ class GameSeeder {
 
         } catch (error) {
             console.error(`❌ Error processing game ${gameBasicData.name}:`, error.message);
+            this.stats.failedGames++;
         }
     }
 
-    // Main seeding function
+    // Print statistics
+    printStats() {
+        console.log('\n📊 SEEDING STATISTICS:');
+        console.log(`   Total games processed: ${this.stats.totalGames}`);
+        console.log(`   Successful insertions: ${this.stats.successfulInserts}`);
+        console.log(`   Duplicate/existing games: ${this.stats.duplicateGames}`);
+        console.log(`   Skipped games: ${this.stats.skippedGames}`);
+        console.log(`   Failed games: ${this.stats.failedGames}`);
+        console.log(`   Success rate: ${((this.stats.successfulInserts / this.stats.totalGames) * 100).toFixed(2)}%`);
+    }
+
+    // Get current database count
+    async getDatabaseCount() {
+        try {
+            const [result] = await this.connection.execute('SELECT COUNT(*) as count FROM games');
+            return result[0].count;
+        } catch (error) {
+            console.error('Error getting database count:', error.message);
+            return 0;
+        }
+    }
+
+    // Main seeding function with better logging and error handling
     async seedGames(startPage = 1, maxPages = 5) {
         try {
             console.log('🚀 Starting game seeding process...');
             console.log(`📊 Will process ${maxPages} pages starting from page ${startPage}`);
+            
+            const initialCount = await this.getDatabaseCount();
+            console.log(`📈 Current games in database: ${initialCount}`);
 
             for (let page = startPage; page < startPage + maxPages; page++) {
-                console.log(`\n📄 Processing page ${page}...`);
+                console.log(`\n📄 Processing page ${page}/${startPage + maxPages - 1}...`);
 
                 const gamesData = await this.fetchGamesFromRAWG(page);
-                if (!gamesData || !gamesData.results) {
+                if (!gamesData || !gamesData.results || gamesData.results.length === 0) {
                     console.log(`⚠️ No games found on page ${page}`);
                     continue;
                 }
 
-                for (const game of gamesData.results) {
+                console.log(`📊 Processing ${gamesData.results.length} games from page ${page}`);
+
+                for (let i = 0; i < gamesData.results.length; i++) {
+                    const game = gamesData.results[i];
+                    console.log(`\n[${i + 1}/${gamesData.results.length}] Processing: ${game.name}`);
                     await this.processGame(game);
                 }
+
+                // Show progress after each page
+                this.printStats();
             }
 
-            console.log('✅ Game seeding completed!');
+            const finalCount = await this.getDatabaseCount();
+            console.log(`\n📈 Final games in database: ${finalCount}`);
+            console.log(`📊 Games added this session: ${finalCount - initialCount}`);
+            
+            console.log('\n✅ Game seeding completed!');
+            this.printStats();
+            
         } catch (error) {
             console.error('❌ Error during seeding process:', error.message);
+            this.printStats();
         }
     }
 }
@@ -506,8 +619,7 @@ async function main() {
     try {
         await seeder.connect();
         
-        // Seed games (adjust maxPages as needed - each page has ~40 games)
-        // Start with 3 pages (120 games) for testing, increase for production
+        // Seed games
         await seeder.seedGames(startPage, pagesToSeed);
         
     } catch (error) {

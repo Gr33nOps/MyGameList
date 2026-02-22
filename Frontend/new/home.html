@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Games</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation Bar -->
+        <nav class="navbar">
+            <div class="nav-brand">My Game List</div>
+            <div class="nav-actions">
+                <a href="myGameList.html" class="btn btn-secondary">List</a>
+                <a href="profile.html" class="btn btn-secondary">Profile</a>
+                <a href="friends.html" class="btn btn-secondary">Following</a>
+                <a href="Moderator.html" class="btn btn-secondary" id="modifyLink" style="display: none;">Modify</a>
+                <a href="Admin.html" class="btn btn-secondary" id="manageLink" style="display: none;">Manage</a>
+                <button class="btn btn-danger" id="logoutBtn">Logout</button>
+            </div>
+        </nav>
+
+        <!-- Search Bar -->
+        <div class="search-container">
+            <div class="search-bar">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search for games...">
+                <button id="searchBtn" class="btn btn-primary">Search</button>
+            </div>
+            <div class="search-filters">
+                <select id="sortBy" class="filter-select">
+                    <option value="popularity-desc">Popularity</option>
+                    <option value="release-desc" selected>Newest</option>
+                    <option value="release-asc">Oldest</option>
+                    <option value="name-asc">Name (A–Z)</option>
+                    <option value="name-desc">Name (Z–A)</option>
+                    <option value="coming-soon">Coming Soon</option>
+                </select>
+                <button id="filterBtn" class="btn btn-secondary">Filters</button>
+            </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div id="filterSection" class="filter-section hidden">
+            <div class="filter-group">
+                <select id="genre" class="filter-select">
+                    <option value="">All Genres</option>
+                </select>
+                <select id="platform" class="filter-select">
+                    <option value="">All Platforms</option>
+                </select>
+                <select id="publisher" class="filter-select">
+                    <option value="">All Publishers</option>
+                </select>
+                <select id="developer" class="filter-select">
+                    <option value="">All Developers</option>
+                </select>
+            </div>
+            <div class="filter-actions">
+                <button id="applyFiltersBtn" class="btn btn-primary">Apply</button>
+                <button id="resetFiltersBtn" class="btn btn-secondary">Reset</button>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="loading-indicator" style="display: none;">
+            <div class="spinner"></div>
+            <p>Loading games...</p>
+        </div>
+
+        <!-- Games Grid -->
+        <div id="searchResults" class="games-grid"></div>
+
+        <!-- Pagination (Bottom) -->
+        <div class="pagination" style="margin-top: 30px;">
+            <button id="prevPageBtn" class="btn" disabled>← Previous</button>
+            <span id="pageInfo" class="page-info">Page 1</span>
+            <button id="nextPageBtn" class="btn">Next →</button>
+        </div>
+
+        <!-- Game Details Modal -->
+        <div id="gameModal" class="modal">
+            <div class="modal-content">
+                <span class="close-btn" id="closeModalBtn">×</span>
+                <div id="gameDetails"></div>
+            </div>
+        </div>
+    </div>
+    <script src="home.js"></script>
+</body>
+</html>
