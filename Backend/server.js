@@ -228,15 +228,7 @@ console.log('All routes loaded\n');
 const frontendPath = path.join(__dirname, '..', 'Frontend');
 app.use(express.static(frontendPath));
 
-app.get('/',                         (req, res) => res.sendFile(path.join(frontendPath, 'home.html')));
-app.get('/auth.html',                (req, res) => res.sendFile(path.join(frontendPath, 'auth.html')));
-app.get('/home.html',                (req, res) => res.sendFile(path.join(frontendPath, 'home.html')));
-app.get('/profile.html',             (req, res) => res.sendFile(path.join(frontendPath, 'profile.html')));
-app.get('/myGameList.html',          (req, res) => res.sendFile(path.join(frontendPath, 'myGameList.html')));
-app.get('/friends.html',             (req, res) => res.sendFile(path.join(frontendPath, 'friends.html')));
-app.get('/userProfile.html',         (req, res) => res.sendFile(path.join(frontendPath, 'userProfile.html')));
-app.get('/admin-dashboard.html',     (req, res) => res.sendFile(path.join(frontendPath, 'admin-dashboard.html')));
-app.get('/moderator-dashboard.html', (req, res) => res.sendFile(path.join(frontendPath, 'moderator-dashboard.html')));
+app.get('/', (req, res) => res.sendFile(path.join(frontendPath, 'home.html')));
 
 app.use((err, req, res, next) => {
   console.error('Server Error:', err.stack);

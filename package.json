@@ -1,12 +1,14 @@
 {
   "name": "my-game-list",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Game tracker app powered by the RAWG API. Node/Express backend on Supabase Postgres with a static vanilla-JS frontend.",
+  "main": "Backend/server.js",
   "scripts": {
+    "start": "node Backend/server.js",
+    "dev": "nodemon Backend/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": ["games", "rawg", "supabase", "express"],
   "author": "",
   "license": "ISC",
   "type": "commonjs",

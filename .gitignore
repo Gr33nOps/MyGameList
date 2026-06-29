@@ -3,14 +3,22 @@ node_modules/
 
 # environment variables
 .env
+.env.local
+.env.*.local
 
 # logs
 logs
 *.log
+npm-debug.log*
 
 # OS files
 .DS_Store
 Thumbs.db
+desktop.ini
 
-video.mp4
-MyGameList.pptx
+# editor
+.idea/
+
+# bundled docs (kept on disk, not in git)
+docs/video.mp4
+docs/MyGameList.pptx
