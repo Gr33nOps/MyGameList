@@ -63,8 +63,8 @@
             color: #e2e8f0;
         }
 
-        /* IGDB attribution */
-        .footer-igdb {
+        /* RAWG attribution */
+        .footer-rawg {
             display: flex;
             align-items: center;
             gap: 12px;
@@ -74,21 +74,21 @@
             border-radius: 10px;
             margin-bottom: 28px;
         }
-        .footer-igdb img {
+        .footer-rawg img {
             height: 26px;
             width: auto;
             flex-shrink: 0;
         }
-        .footer-igdb-text {
+        .footer-rawg-text {
             font-size: 0.78rem;
             line-height: 1.6;
             color: #64748b;
         }
-        .footer-igdb-text a {
+        .footer-rawg-text a {
             color: #3b82f6;
             text-decoration: none;
         }
-        .footer-igdb-text a:hover {
+        .footer-rawg-text a:hover {
             text-decoration: underline;
         }
 
@@ -174,13 +174,18 @@
             </div>
             <div class="search-filters">
                 <select id="sortBy" class="filter-select">
-                    <option value="popularity-desc">Popularity</option>
-                    <option value="release-desc" selected>Newest</option>
+                    <option value="trending-desc" selected>Trending</option>
+                    <option value="popularity-desc">Most Popular</option>
+                    <option value="release-desc">Newest</option>
                     <option value="release-asc">Oldest</option>
                     <option value="name-asc">Name (A-Z)</option>
                     <option value="name-desc">Name (Z-A)</option>
                     <option value="coming-soon">Coming Soon</option>
                 </select>
+                <label class="quality-toggle" title="Hide mods, demos, soundtracks, and low-quality entries">
+                    <input type="checkbox" id="qualityFilterToggle" checked>
+                    <span>Quality only</span>
+                </label>
                 <button id="filterBtn" class="btn btn-secondary">Filters</button>
             </div>
         </div>
@@ -251,21 +256,21 @@
                 <div class="footer-col">
                     <h4>Data &amp; Credits</h4>
                     <ul>
-                        <li><a href="https://www.igdb.com" target="_blank" rel="noopener noreferrer">IGDB</a></li>
-                        <li><a href="https://www.twitch.tv" target="_blank" rel="noopener noreferrer">Twitch</a></li>
-                        <li><a href="https://api-docs.igdb.com" target="_blank" rel="noopener noreferrer">IGDB API Docs</a></li>
+                        <li><a href="https://rawg.io" target="_blank" rel="noopener noreferrer">RAWG</a></li>
+                        <li><a href="https://rawg.io/apidocs" target="_blank" rel="noopener noreferrer">RAWG API Docs</a></li>
+                        <li><a href="https://api.rawg.io/docs/" target="_blank" rel="noopener noreferrer">RAWG API Reference</a></li>
                     </ul>
                 </div>
 
             </div>
 
-            <!-- IGDB attribution -->
-            <div class="footer-igdb">
-                <img src="https://www.igdb.com/favicon.ico" alt="IGDB logo" onerror="this.style.display='none'">
-                <div class="footer-igdb-text">
-                    Game data powered by <a href="https://www.igdb.com" target="_blank" rel="noopener noreferrer">IGDB (Internet Game Database)</a> — a Twitch service.
+            <!-- RAWG attribution -->
+            <div class="footer-rawg">
+                <img src="https://rawg.io/favicon.ico" alt="RAWG logo" onerror="this.style.display='none'">
+                <div class="footer-rawg-text">
+                    Game data powered by <a href="https://rawg.io" target="_blank" rel="noopener noreferrer">RAWG</a> — the largest video game database.
                     Game information, cover images, and metadata are provided via the
-                    <a href="https://api-docs.igdb.com" target="_blank" rel="noopener noreferrer">IGDB API</a>.
+                    <a href="https://rawg.io/apidocs" target="_blank" rel="noopener noreferrer">RAWG API</a>.
                     All game data and images are the property of their respective owners.
                 </div>
             </div>

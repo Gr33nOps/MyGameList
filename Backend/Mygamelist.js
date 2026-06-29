@@ -36,22 +36,24 @@ module.exports = (db, verifyToken, checkBanned) => {
 
   async function ensureGameExists(gameData) {
     try {
-      if (gameData.igdb_id) {
-        const existing = await db('games').where({ igdb_id: gameData.igdb_id }).first();
+      const externalId = gameData.rawg_id ?? gameData.igdb_id ?? null;
+
+      if (externalId) {
+        const existing = await db('games').where({ igdb_id: externalId }).first();
         if (existing) return existing.id;
       }
 
       const existingByName = await db('games').where({ name: gameData.name }).first();
       if (existingByName) {
-        if (!existingByName.igdb_id && gameData.igdb_id) {
-          await db('games').where({ id: existingByName.id }).update({ igdb_id: gameData.igdb_id });
+        if (!existingByName.igdb_id && externalId) {
+          await db('games').where({ id: existingByName.id }).update({ igdb_id: externalId });
         }
         return existingByName.id;
       }
 
-      const gameTextId = gameData.igdb_id
-        ? `igdb_${gameData.igdb_id}`
-        : (gameData.game_id || `igdb_${Date.now()}`);
+      const gameTextId = externalId
+        ? `rawg_${externalId}`
+        : (gameData.game_id || `rawg_${Date.now()}`);
 
       const slug = generateSlug(gameData.name);
       let gameIntId;
@@ -59,7 +61,7 @@ module.exports = (db, verifyToken, checkBanned) => {
       try {
         const [row] = await db('games').insert({
           game_id:          gameTextId,
-          igdb_id:          gameData.igdb_id          || null,
+          igdb_id:          externalId                 || null,
           name:             gameData.name,
           slug:             slug                       || gameData.name,
           description:      gameData.description       || null,
@@ -78,7 +80,7 @@ module.exports = (db, verifyToken, checkBanned) => {
         const uniqueSlug = `${slug}-${Date.now()}`;
         const [row] = await db('games').insert({
           game_id:          gameTextId,
-          igdb_id:          gameData.igdb_id          || null,
+          igdb_id:          externalId                 || null,
           name:             gameData.name,
           slug:             uniqueSlug,
           description:      gameData.description       || null,
@@ -163,8 +165,8 @@ module.exports = (db, verifyToken, checkBanned) => {
 
       if (game_data) {
         dbGameId = await ensureGameExists(game_data);
-      } else if (game_id && game_id.toString().startsWith('igdb_')) {
-        return res.status(400).json({ error: 'Game data required for IGDB games' });
+      } else if (game_id && /^(rawg|igdb)_/.test(game_id.toString())) {
+        return res.status(400).json({ error: 'Game data required for external API games' });
       } else {
         dbGameId = game_id;
       }

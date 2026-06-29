@@ -215,11 +215,11 @@ try {
 }
 
 try {
-  const igdbRoutes = require('./igdb');
-  app.use('/api/igdb', igdbRoutes());
-  console.log('  IGDB proxy routes loaded');
+  const rawgRoutes = require('./rawg');
+  app.use('/api/rawg', rawgRoutes());
+  console.log('  RAWG proxy routes loaded');
 } catch (error) {
-  console.error('  Error loading IGDB proxy routes:', error.message);
+  console.error('  Error loading RAWG proxy routes:', error.message);
   process.exit(1);
 }
 

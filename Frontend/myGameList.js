@@ -292,7 +292,9 @@ async function showGameDetails(gameId) {
         var game = await response.json();
         if (!response.ok) return;
 
-        var heroBg = game.background_image || 'https://via.placeholder.com/860x280/0d1525/3b82f6?text=No+Image';
+        var name    = game.name || 'Unknown';
+        var initial = ((name.trim().charAt(0)) || '?').toUpperCase();
+        var heroBg  = game.background_image || null;
         var infoItems = [
             game.released ? { label: 'Released', value: new Date(game.released).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' }) } : null,
             game.publishers && game.publishers.length ? { label: 'Publisher', value: game.publishers.map(function(p) { return p.name; }).join(', ') } : null,
@@ -301,32 +303,42 @@ async function showGameDetails(gameId) {
         ].filter(Boolean);
 
         var genreTagsHtml = (game.genres || []).length
-            ? '<div class="game-detail-genres">' + game.genres.map(function(g) { return '<span class="game-detail-genre-tag">' + g.name + '</span>'; }).join('') + '</div>'
+            ? '<div class="game-detail-genres">' + game.genres.map(function(g) { return '<span class="game-detail-genre-tag">' + esc(g.name) + '</span>'; }).join('') + '</div>'
             : '';
 
         var infoGridHtml = infoItems.length
-            ? '<div class="game-detail-info-grid">' + infoItems.map(function(i) { return '<div class="game-detail-info-item"><div class="game-detail-info-label">' + i.label + '</div><div class="game-detail-info-value">' + i.value + '</div></div>'; }).join('') + '</div>'
+            ? '<div class="game-detail-info-grid">' + infoItems.map(function(i) { return '<div class="game-detail-info-item"><div class="game-detail-info-label">' + esc(i.label) + '</div><div class="game-detail-info-value">' + esc(i.value) + '</div></div>'; }).join('') + '</div>'
             : '';
 
         var releasedBadge = game.released
-            ? '<span class="game-detail-date">' + new Date(game.released).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' }) + '</span>'
+            ? '<span class="game-detail-date">' + esc(new Date(game.released).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' })) + '</span>'
             : '';
 
+        var heroHtml = heroBg
+            ? '<div class="game-detail-hero"><img src="' + esc(heroBg) + '" alt="' + esc(name) + ' banner" class="game-detail-hero-img" loading="lazy" onerror="this.parentElement.classList.add(\'no-image\')"></div>'
+            : '<div class="game-detail-hero no-image" data-initial="' + esc(initial) + '"></div>';
+
+        var coverHtml = heroBg
+            ? '<img src="' + esc(heroBg) + '" alt="' + esc(name) + ' cover" class="game-detail-cover" loading="lazy" onerror="this.outerHTML=\'<div class=&quot;game-detail-cover no-image-cover&quot;>' + esc(initial) + '</div>\'">'
+            : '<div class="game-detail-cover no-image-cover">' + esc(initial) + '</div>';
+
+        var descText = game.description && game.description.trim()
+            ? game.description.trim()
+            : 'No description available for this game.';
+
         document.getElementById('gameDetails').innerHTML =
-            '<div class="game-detail-hero">' +
-                '<img src="' + heroBg + '" alt="' + esc(game.name) + ' banner" class="game-detail-hero-img" loading="lazy" onerror="this.src=\'https://via.placeholder.com/860x280/0d1525/3b82f6?text=No+Image\'">' +
-            '</div>' +
+            heroHtml +
             '<div class="game-detail-body">' +
                 '<div class="game-detail-title-row">' +
-                    '<img src="' + heroBg + '" alt="' + esc(game.name) + ' cover" class="game-detail-cover" loading="lazy" onerror="this.src=\'https://via.placeholder.com/100x134/1e293b/64748b?text=?\'">' +
+                    coverHtml +
                     '<div class="game-detail-title-meta">' +
-                        '<div class="game-detail-title">' + esc(game.name) + '</div>' +
+                        '<div class="game-detail-title">' + esc(name) + '</div>' +
                         '<div class="game-detail-badges">' + releasedBadge + '</div>' +
                     '</div>' +
                 '</div>' +
                 genreTagsHtml +
                 infoGridHtml +
-                (game.description ? '<p class="game-detail-desc">' + game.description + '</p>' : '') +
+                '<p class="game-detail-desc">' + esc(descText) + '</p>' +
             '</div>';
         document.getElementById('gameModal').style.display = 'flex';
     } catch (error) {
@@ -689,7 +701,9 @@ async function clShowGameDetails(gameId) {
         var response = await fetch(`${API_BASE}/games/${gameId}`);
         var game = await response.json();
         if (!response.ok) return;
-        var heroBg = game.background_image || 'https://via.placeholder.com/860x280/0d1525/3b82f6?text=No+Image';
+        var name    = game.name || 'Unknown';
+        var initial = ((name.trim().charAt(0)) || '?').toUpperCase();
+        var heroBg  = game.background_image || null;
         var infoItems = [
             game.released ? { label: 'Released', value: new Date(game.released).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' }) } : null,
             game.publishers && game.publishers.length ? { label: 'Publisher', value: game.publishers.map(function(p) { return p.name; }).join(', ') } : null,
@@ -698,27 +712,39 @@ async function clShowGameDetails(gameId) {
         ].filter(Boolean);
 
         var genreTagsHtml = (game.genres || []).length
-            ? '<div class="game-detail-genres">' + game.genres.map(function(g) { return '<span class="game-detail-genre-tag">' + g.name + '</span>'; }).join('') + '</div>'
+            ? '<div class="game-detail-genres">' + game.genres.map(function(g) { return '<span class="game-detail-genre-tag">' + esc(g.name) + '</span>'; }).join('') + '</div>'
             : '';
         var infoGridHtml = infoItems.length
-            ? '<div class="game-detail-info-grid">' + infoItems.map(function(i) { return '<div class="game-detail-info-item"><div class="game-detail-info-label">' + i.label + '</div><div class="game-detail-info-value">' + i.value + '</div></div>'; }).join('') + '</div>'
+            ? '<div class="game-detail-info-grid">' + infoItems.map(function(i) { return '<div class="game-detail-info-item"><div class="game-detail-info-label">' + esc(i.label) + '</div><div class="game-detail-info-value">' + esc(i.value) + '</div></div>'; }).join('') + '</div>'
             : '';
         var releasedBadge = game.released
-            ? '<span class="game-detail-date">' + new Date(game.released).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' }) + '</span>'
+            ? '<span class="game-detail-date">' + esc(new Date(game.released).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' })) + '</span>'
             : '';
 
+        var heroHtml = heroBg
+            ? '<div class="game-detail-hero"><img src="' + esc(heroBg) + '" alt="' + esc(name) + ' banner" class="game-detail-hero-img" loading="lazy" onerror="this.parentElement.classList.add(\'no-image\')"></div>'
+            : '<div class="game-detail-hero no-image" data-initial="' + esc(initial) + '"></div>';
+
+        var coverHtml = heroBg
+            ? '<img src="' + esc(heroBg) + '" alt="' + esc(name) + ' cover" class="game-detail-cover" loading="lazy" onerror="this.outerHTML=\'<div class=&quot;game-detail-cover no-image-cover&quot;>' + esc(initial) + '</div>\'">'
+            : '<div class="game-detail-cover no-image-cover">' + esc(initial) + '</div>';
+
+        var descText = game.description && game.description.trim()
+            ? game.description.trim()
+            : 'No description available for this game.';
+
         document.getElementById('clGameDetails').innerHTML =
-            '<div class="game-detail-hero"><img src="' + heroBg + '" alt="' + esc(game.name) + ' banner" class="game-detail-hero-img" loading="lazy" onerror="this.src=\'https://via.placeholder.com/860x280/0d1525/3b82f6?text=No+Image\'"></div>' +
+            heroHtml +
             '<div class="game-detail-body">' +
                 '<div class="game-detail-title-row">' +
-                    '<img src="' + heroBg + '" alt="' + esc(game.name) + ' cover" class="game-detail-cover" loading="lazy" onerror="this.src=\'https://via.placeholder.com/100x134/1e293b/64748b?text=?\'">' +
+                    coverHtml +
                     '<div class="game-detail-title-meta">' +
-                        '<div class="game-detail-title">' + esc(game.name) + '</div>' +
+                        '<div class="game-detail-title">' + esc(name) + '</div>' +
                         '<div class="game-detail-badges">' + releasedBadge + '</div>' +
                     '</div>' +
                 '</div>' +
                 genreTagsHtml + infoGridHtml +
-                (game.description ? '<p class="game-detail-desc">' + game.description + '</p>' : '') +
+                '<p class="game-detail-desc">' + esc(descText) + '</p>' +
             '</div>';
         clOpenModal('clGameModal');
     } catch (error) { console.error('Show CL game details error:', error); }

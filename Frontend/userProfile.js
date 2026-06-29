@@ -253,47 +253,37 @@ function renderCollectionRow(game) {
 
 async function showGameDetails(gameId) {
     try {
-        var igdbId = String(gameId).replace('igdb_', '');
+        var rawgId = String(gameId).replace(/^(rawg|igdb)_/, '');
 
-        var r = await fetch(`${API_BASE}/igdb/games`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                query: 'fields name, cover.url, summary, first_release_date, aggregated_rating, aggregated_rating_count, total_rating, total_rating_count, genres.name, platforms.name, involved_companies.company.name, involved_companies.publisher, involved_companies.developer; where id = ' + igdbId + ';'
-            })
-        });
+        var r = await fetch(`${API_BASE}/rawg/games/${encodeURIComponent(rawgId)}`);
+        if (!r.ok) return;
 
-        var igdbGames = await r.json();
-        if (!r.ok || !igdbGames.length) return;
+        var ig = await r.json();
+        if (!ig || !ig.id) return;
 
-        var ig         = igdbGames[0];
-        var publishers = [];
-        var developers = [];
-        (ig.involved_companies || []).forEach(function(ic) {
-            if (ic.company) {
-                if (ic.publisher) publishers.push(ic.company.name);
-                if (ic.developer) developers.push(ic.company.name);
-            }
-        });
+        var publishers = (ig.publishers || []).map(function(p) { return p.name; });
+        var developers = (ig.developers || []).map(function(d) { return d.name; });
 
-        var score = null;
-        if (ig.total_rating && ig.total_rating_count >= 5)           score = Math.round(ig.total_rating);
-        else if (ig.aggregated_rating && ig.aggregated_rating_count >= 3) score = Math.round(ig.aggregated_rating);
+        var score = ig.metacritic ? Math.round(ig.metacritic) : null;
 
         var rc       = !score ? '#666' : score >= 90 ? '#10b981' : score >= 75 ? '#3b82f6' : score >= 50 ? '#f59e0b' : '#ef4444';
-        var coverUrl = ig.cover
-            ? 'https:' + ig.cover.url.replace('t_thumb', 't_cover_big')
-            : 'https://via.placeholder.com/860x280/0d1525/3b82f6?text=No+Image';
+        var name     = ig.name || 'Unknown';
+        var initial  = ((name.trim().charAt(0)) || '?').toUpperCase();
+        var coverUrl = ig.background_image || null;
 
-        var released = ig.first_release_date
-            ? new Date(ig.first_release_date * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+        var released = ig.released
+            ? new Date(ig.released).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
             : null;
 
+        var platformNames = (ig.platforms || [])
+            .map(function(p) { return p.platform ? p.platform.name : p.name; })
+            .filter(Boolean);
+
         var infoItems = [
-            released          ? { label: 'Released',  value: released }                                           : null,
-            publishers.length ? { label: 'Publisher', value: publishers.join(', ') }                              : null,
-            developers.length ? { label: 'Developer', value: developers.join(', ') }                              : null,
-            ig.platforms && ig.platforms.length ? { label: 'Platforms', value: ig.platforms.map(function(p) { return p.name; }).join(' / ') } : null
+            released          ? { label: 'Released',  value: released }                : null,
+            publishers.length ? { label: 'Publisher', value: publishers.join(', ') }   : null,
+            developers.length ? { label: 'Developer', value: developers.join(', ') }   : null,
+            platformNames.length ? { label: 'Platforms', value: platformNames.join(' / ') } : null
         ].filter(Boolean);
 
         var genreTagsHtml = (ig.genres || []).length
@@ -301,29 +291,39 @@ async function showGameDetails(gameId) {
             : '';
 
         var infoGridHtml = infoItems.length
-            ? '<div class="game-detail-info-grid">' + infoItems.map(function(i) { return '<div class="game-detail-info-item"><div class="game-detail-info-label">' + i.label + '</div><div class="game-detail-info-value">' + i.value + '</div></div>'; }).join('') + '</div>'
+            ? '<div class="game-detail-info-grid">' + infoItems.map(function(i) { return '<div class="game-detail-info-item"><div class="game-detail-info-label">' + esc(i.label) + '</div><div class="game-detail-info-value">' + esc(i.value) + '</div></div>'; }).join('') + '</div>'
             : '';
 
         var scoreSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>';
 
+        var summary = ig.description_raw
+            || (ig.description ? ig.description.replace(/<[^>]+>/g, '').trim() : '')
+            || 'No description available for this game.';
+
+        var heroHtml = coverUrl
+            ? '<div class="game-detail-hero"><img src="' + esc(coverUrl) + '" alt="' + esc(name) + ' banner" class="game-detail-hero-img" loading="lazy" onerror="this.parentElement.classList.add(\'no-image\')"></div>'
+            : '<div class="game-detail-hero no-image" data-initial="' + esc(initial) + '"></div>';
+
+        var coverHtml = coverUrl
+            ? '<img src="' + esc(coverUrl) + '" alt="' + esc(name) + ' cover" class="game-detail-cover" loading="lazy" onerror="this.outerHTML=\'<div class=&quot;game-detail-cover no-image-cover&quot;>' + esc(initial) + '</div>\'">'
+            : '<div class="game-detail-cover no-image-cover">' + esc(initial) + '</div>';
+
         document.getElementById('gameDetails').innerHTML =
-            '<div class="game-detail-hero">' +
-                '<img src="' + coverUrl + '" alt="' + esc(ig.name) + ' banner" class="game-detail-hero-img" loading="lazy" onerror="this.src=\'https://via.placeholder.com/860x280/0d1525/3b82f6?text=No+Image\'">' +
-            '</div>' +
+            heroHtml +
             '<div class="game-detail-body">' +
                 '<div class="game-detail-title-row">' +
-                    '<img src="' + coverUrl + '" alt="' + esc(ig.name) + ' cover" class="game-detail-cover" loading="lazy" onerror="this.src=\'https://via.placeholder.com/100x134/1e293b/64748b?text=?\'">' +
+                    coverHtml +
                     '<div class="game-detail-title-meta">' +
-                        '<div class="game-detail-title">' + esc(ig.name) + '</div>' +
+                        '<div class="game-detail-title">' + esc(name) + '</div>' +
                         '<div class="game-detail-badges">' +
                             '<span class="game-detail-score" style="background:' + rc + ';">' + scoreSvg + ' ' + (score ? score + '/100' : 'No Rating') + '</span>' +
-                            (released ? '<span class="game-detail-date">' + released + '</span>' : '') +
+                            (released ? '<span class="game-detail-date">' + esc(released) + '</span>' : '') +
                         '</div>' +
                     '</div>' +
                 '</div>' +
                 genreTagsHtml +
                 infoGridHtml +
-                (ig.summary ? '<p class="game-detail-desc">' + esc(ig.summary) + '</p>' : '') +
+                '<p class="game-detail-desc">' + esc(summary) + '</p>' +
             '</div>';
 
         document.getElementById('gameModal').style.display = 'flex';
@@ -538,73 +538,75 @@ function upRenderGameRow(g) {
 
 async function upShowGameDetails(gameId) {
     try {
-        var igdbId = String(gameId).replace('igdb_', '');
+        var rawgId = String(gameId).replace(/^(rawg|igdb)_/, '');
 
-        var r = await fetch(`${API_BASE}/igdb/games`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                query: 'fields name, cover.url, summary, first_release_date, aggregated_rating, aggregated_rating_count, total_rating, total_rating_count, genres.name, platforms.name, involved_companies.company.name, involved_companies.publisher, involved_companies.developer; where id = ' + igdbId + ';'
-            })
-        });
+        var r = await fetch(`${API_BASE}/rawg/games/${encodeURIComponent(rawgId)}`);
+        if (!r.ok) return;
 
-        var igdbGames = await r.json();
-        if (!r.ok || !igdbGames.length) return;
+        var ig = await r.json();
+        if (!ig || !ig.id) return;
 
-        var ig         = igdbGames[0];
-        var publishers = [];
-        var developers = [];
-        (ig.involved_companies || []).forEach(function(ic) {
-            if (ic.company) {
-                if (ic.publisher) publishers.push(ic.company.name);
-                if (ic.developer) developers.push(ic.company.name);
-            }
-        });
+        var publishers = (ig.publishers || []).map(function(p) { return p.name; });
+        var developers = (ig.developers || []).map(function(d) { return d.name; });
 
-        var score = null;
-        if (ig.total_rating && ig.total_rating_count >= 5)           score = Math.round(ig.total_rating);
-        else if (ig.aggregated_rating && ig.aggregated_rating_count >= 3) score = Math.round(ig.aggregated_rating);
+        var score = ig.metacritic ? Math.round(ig.metacritic) : null;
 
         var rc       = !score ? '#666' : score >= 90 ? '#10b981' : score >= 75 ? '#3b82f6' : score >= 50 ? '#f59e0b' : '#ef4444';
-        var coverUrl = ig.cover
-            ? 'https:' + ig.cover.url.replace('t_thumb', 't_cover_big')
-            : 'https://via.placeholder.com/860x280/0d1525/3b82f6?text=No+Image';
+        var name     = ig.name || 'Unknown';
+        var initial  = ((name.trim().charAt(0)) || '?').toUpperCase();
+        var coverUrl = ig.background_image || null;
 
-        var released = ig.first_release_date
-            ? new Date(ig.first_release_date * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+        var released = ig.released
+            ? new Date(ig.released).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
             : null;
 
+        var platformNames = (ig.platforms || [])
+            .map(function(p) { return p.platform ? p.platform.name : p.name; })
+            .filter(Boolean);
+
         var infoItems = [
-            released          ? { label: 'Released',  value: released }                                                   : null,
-            publishers.length ? { label: 'Publisher', value: publishers.join(', ') }                                      : null,
-            developers.length ? { label: 'Developer', value: developers.join(', ') }                                      : null,
-            ig.platforms && ig.platforms.length ? { label: 'Platforms', value: ig.platforms.map(function(p) { return p.name; }).join(' / ') } : null
+            released          ? { label: 'Released',  value: released }                : null,
+            publishers.length ? { label: 'Publisher', value: publishers.join(', ') }   : null,
+            developers.length ? { label: 'Developer', value: developers.join(', ') }   : null,
+            platformNames.length ? { label: 'Platforms', value: platformNames.join(' / ') } : null
         ].filter(Boolean);
 
         var genreTagsHtml = (ig.genres || []).length
             ? '<div class="game-detail-genres">' + ig.genres.map(function(g) { return '<span class="game-detail-genre-tag">' + esc(g.name) + '</span>'; }).join('') + '</div>'
             : '';
         var infoGridHtml = infoItems.length
-            ? '<div class="game-detail-info-grid">' + infoItems.map(function(i) { return '<div class="game-detail-info-item"><div class="game-detail-info-label">' + i.label + '</div><div class="game-detail-info-value">' + i.value + '</div></div>'; }).join('') + '</div>'
+            ? '<div class="game-detail-info-grid">' + infoItems.map(function(i) { return '<div class="game-detail-info-item"><div class="game-detail-info-label">' + esc(i.label) + '</div><div class="game-detail-info-value">' + esc(i.value) + '</div></div>'; }).join('') + '</div>'
             : '';
 
         var scoreSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>';
 
+        var summary = ig.description_raw
+            || (ig.description ? ig.description.replace(/<[^>]+>/g, '').trim() : '')
+            || 'No description available for this game.';
+
+        var heroHtml = coverUrl
+            ? '<div class="game-detail-hero"><img src="' + esc(coverUrl) + '" alt="' + esc(name) + ' banner" class="game-detail-hero-img" loading="lazy" onerror="this.parentElement.classList.add(\'no-image\')"></div>'
+            : '<div class="game-detail-hero no-image" data-initial="' + esc(initial) + '"></div>';
+
+        var coverHtml = coverUrl
+            ? '<img src="' + esc(coverUrl) + '" alt="' + esc(name) + ' cover" class="game-detail-cover" loading="lazy" onerror="this.outerHTML=\'<div class=&quot;game-detail-cover no-image-cover&quot;>' + esc(initial) + '</div>\'">'
+            : '<div class="game-detail-cover no-image-cover">' + esc(initial) + '</div>';
+
         document.getElementById('clGameDetails').innerHTML =
-            '<div class="game-detail-hero"><img src="' + coverUrl + '" alt="' + esc(ig.name) + ' banner" class="game-detail-hero-img" loading="lazy" onerror="this.src=\'https://via.placeholder.com/860x280/0d1525/3b82f6?text=No+Image\'"></div>' +
+            heroHtml +
             '<div class="game-detail-body">' +
                 '<div class="game-detail-title-row">' +
-                    '<img src="' + coverUrl + '" alt="' + esc(ig.name) + ' cover" class="game-detail-cover" loading="lazy" onerror="this.src=\'https://via.placeholder.com/100x134/1e293b/64748b?text=?\'">' +
+                    coverHtml +
                     '<div class="game-detail-title-meta">' +
-                        '<div class="game-detail-title">' + esc(ig.name) + '</div>' +
+                        '<div class="game-detail-title">' + esc(name) + '</div>' +
                         '<div class="game-detail-badges">' +
                             '<span class="game-detail-score" style="background:' + rc + ';">' + scoreSvg + ' ' + (score ? score + '/100' : 'No Rating') + '</span>' +
-                            (released ? '<span class="game-detail-date">' + released + '</span>' : '') +
+                            (released ? '<span class="game-detail-date">' + esc(released) + '</span>' : '') +
                         '</div>' +
                     '</div>' +
                 '</div>' +
                 genreTagsHtml + infoGridHtml +
-                (ig.summary ? '<p class="game-detail-desc">' + esc(ig.summary) + '</p>' : '') +
+                '<p class="game-detail-desc">' + esc(summary) + '</p>' +
             '</div>';
 
         upOpenModal('clGameModal');
