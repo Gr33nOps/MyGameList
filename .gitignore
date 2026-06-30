@@ -18,7 +18,13 @@ desktop.ini
 
 # editor
 .idea/
+.vscode/
 
-# bundled docs (kept on disk, not in git)
-docs/video.mp4
-docs/MyGameList.pptx
+# Claude Code state
+.claude/
+
+# project docs (kept locally, not on GitHub)
+docs/
+
+# one-shot migration script (already used)
+supabase-migration/

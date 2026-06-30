@@ -2,7 +2,6 @@ const API_BASE = '/api';
 
 let authToken   = localStorage.getItem('authToken');
 let currentUser = JSON.parse(localStorage.getItem('currentUser'));
-let allGames    = [];
 let currentFilters   = {};
 let currentSort      = 'trending';
 let currentSortOrder = 'desc';
@@ -15,6 +14,11 @@ let retryCount   = 0;
 const maxRetries = 3;
 let isVerifying  = false;
 let qualityFilter = true;
+
+let filteredCache = [];
+let rawgCursor    = 1;
+let rawgExhausted = false;
+const MAX_FETCHES_PER_CLICK = 6;
 
 const QUALITY_PARENT_PLATFORMS = '1,2,3,7';
 const QUALITY_STORES           = '1,2,3,5,6,7,11';
@@ -163,10 +167,8 @@ function initPage() {
         qualityToggle.checked = qualityFilter;
         qualityToggle.addEventListener('change', function() {
             qualityFilter = qualityToggle.checked;
-            currentPage  = 1;
-            allGames     = [];
-            hasMoreGames = true;
-            retryCount   = 0;
+            currentPage   = 1;
+            retryCount    = 0;
             window.scrollTo(0, 0);
             fetchGames(true);
         });
@@ -186,10 +188,8 @@ function initPage() {
             currentSortOrder = value.substring(dashIdx + 1);
         }
 
-        currentPage  = 1;
-        allGames     = [];
-        hasMoreGames = true;
-        retryCount   = 0;
+        currentPage = 1;
+        retryCount  = 0;
         window.scrollTo(0, 0);
         fetchGames(true);
     });
@@ -366,7 +366,8 @@ function transformRAWGGame(game) {
         metacritic_score: metaScore,
         rating_count:     game.ratings_count || 0,
         playtime:         game.playtime || 0,
-        genres:           (game.genres || []).map(function(g) { return { id: g.id, name: g.name }; }),
+        added:            game.added || 0,
+        genres:           (game.genres || []).map(function(g) { return { id: g.id, name: g.name, slug: g.slug }; }),
         platforms:        platforms,
         publishers:       publishers,
         developers:       developers,
@@ -374,158 +375,187 @@ function transformRAWGGame(game) {
     };
 }
 
-async function fetchGames(replace) {
-    if (replace === undefined) replace = true;
-    if (isLoading || (!replace && !hasMoreGames)) return;
-    isLoading = true;
+function buildRawgParams(rawgPage, isSearchMode, isComingSoon, isPopularity, isTrending) {
+    var params = new URLSearchParams();
+    params.set('page',      rawgPage);
+    params.set('page_size', apiGamesPerPage);
+    params.set('exclude_additions', 'true');
 
+    if (currentFilters.search) {
+        var searchQ = currentFilters.search.trim();
+        params.set('search', searchQ);
+        if (searchQ.length >= 4) params.set('search_precise', 'true');
+    }
+    if (currentFilters.genre)     params.set('genres',     currentFilters.genre);
+    if (currentFilters.platform)  params.set('platforms',  currentFilters.platform);
+    if (currentFilters.publisher) params.set('publishers', currentFilters.publisher);
+    if (currentFilters.developer) params.set('developers', currentFilters.developer);
+
+    if (qualityFilter) {
+        if (!currentFilters.platform)         params.set('parent_platforms', QUALITY_PARENT_PLATFORMS);
+        if (!isSearchMode && !isComingSoon)   params.set('stores',           QUALITY_STORES);
+    }
+
+    var today    = new Date();
+    var todayStr = rawgFormatDate(today);
+
+    if (isComingSoon) {
+        var tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+        params.set('dates', rawgFormatDate(tomorrow) + ',2099-12-31');
+    } else if (isTrending && !isSearchMode) {
+        var yearAgo = new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000);
+        params.set('dates', rawgFormatDate(yearAgo) + ',' + todayStr);
+    } else if (!isSearchMode) {
+        params.set('dates', '1970-01-01,' + todayStr);
+    }
+
+    var ordering = '-released';
+    if (isComingSoon || isPopularity || isTrending) {
+        ordering = '-added';
+    } else {
+        var prefix = currentSortOrder === 'asc' ? '' : '-';
+        switch (currentSort) {
+            case 'rating':  ordering = prefix + 'rating';   break;
+            case 'name':    ordering = prefix + 'name';     break;
+            case 'release': ordering = prefix + 'released'; break;
+            default:        ordering = prefix + 'released'; break;
+        }
+    }
+    params.set('ordering', ordering);
+
+    return params;
+}
+
+function filterRawgBatch(rawResults, ctx) {
+    var results = rawResults;
+
+    if (ctx.isComingSoon) {
+        results = results.filter(function(g) {
+            return g.released && new Date(g.released).getTime() > Date.now();
+        });
+    } else if (!ctx.isSearchMode) {
+        results = results.filter(function(g) {
+            return g.released && new Date(g.released).getTime() <= Date.now();
+        });
+    }
+
+    if (!ctx.searchTermIsEdition) {
+        results = results.filter(function(g) { return !isEditionVariant(g.name); });
+    }
+    if (!ctx.searchTermIsJunk) {
+        results = results.filter(function(g) { return !isJunkVariant(g.name); });
+    }
+
+    if (qualityFilter && !ctx.isSearchMode) {
+        var useStrictFloor = ctx.isTrending || ctx.isPopularity || currentSort === 'name';
+        if (useStrictFloor) {
+            results = results.filter(isHighQuality);
+        } else {
+            results = results.filter(function(g) { return !isLowQuality(g); });
+        }
+    }
+
+    if (ctx.isSearchMode && shouldEnforceTokenFilter(ctx.searchLower, ctx.searchTokensList)) {
+        var requireAll = ctx.searchTokensList.length >= 2;
+        results = results.filter(function(g) {
+            return nameMatchesTokens(g.name, ctx.searchTokensList, requireAll);
+        });
+    }
+
+    return results;
+}
+
+function resetPaginationState() {
+    filteredCache = [];
+    rawgCursor    = 1;
+    rawgExhausted = false;
+    hasMoreGames  = true;
+}
+
+async function fetchGames(reset) {
+    if (reset === undefined) reset = true;
+    if (isLoading) return;
+    if (!reset && !hasMoreGames) return;
+
+    isLoading = true;
     document.getElementById('loadingIndicator').style.display = 'flex';
 
     try {
+        if (reset) resetPaginationState();
+
         var isSearchMode = !!(currentFilters.search && currentFilters.search.trim());
         var isComingSoon = currentSort === 'coming' && currentSortOrder === 'soon';
         var isPopularity = currentSort === 'popularity';
         var isTrending   = currentSort === 'trending';
 
-        var params = new URLSearchParams();
-        params.set('page',      currentPage);
-        params.set('page_size', apiGamesPerPage);
-        params.set('exclude_additions', 'true');
+        var searchLower      = isSearchMode ? currentFilters.search.toLowerCase().trim() : '';
+        var searchTokensList = isSearchMode ? searchTokens(searchLower) : [];
 
-        if (currentFilters.search) {
-            var searchQ = currentFilters.search.trim();
-            params.set('search', searchQ);
-            if (searchQ.length >= 4) {
-                params.set('search_precise', 'true');
+        var ctx = {
+            isSearchMode:        isSearchMode,
+            isComingSoon:        isComingSoon,
+            isPopularity:        isPopularity,
+            isTrending:          isTrending,
+            searchLower:         searchLower,
+            searchTokensList:    searchTokensList,
+            searchTermIsEdition: isSearchMode && EDITION_KEYWORDS.some(function(kw) { return searchLower.includes(kw); }),
+            searchTermIsJunk:    isSearchMode && JUNK_REGEX.test(searchLower)
+        };
+
+        var startIdx = (currentPage - 1) * gamesPerPage;
+        var endIdx   = startIdx + gamesPerPage;
+
+        var fetchedThisCall = 0;
+
+        while (filteredCache.length < endIdx && !rawgExhausted && fetchedThisCall < MAX_FETCHES_PER_CLICK) {
+            var params   = buildRawgParams(rawgCursor, isSearchMode, isComingSoon, isPopularity, isTrending);
+            var response = await fetch(`${API_BASE}/rawg/games?` + params.toString());
+
+            if (!response.ok) {
+                if (response.status === 429 && retryCount < maxRetries) {
+                    retryCount++;
+                    await new Promise(function(r) { setTimeout(r, 2000 * retryCount); });
+                    continue;
+                }
+                throw new Error('RAWG error ' + response.status);
             }
-        }
-        if (currentFilters.genre)     params.set('genres',     currentFilters.genre);
-        if (currentFilters.platform)  params.set('platforms',  currentFilters.platform);
-        if (currentFilters.publisher) params.set('publishers', currentFilters.publisher);
-        if (currentFilters.developer) params.set('developers', currentFilters.developer);
 
-        if (qualityFilter) {
-            if (!currentFilters.platform) params.set('parent_platforms', QUALITY_PARENT_PLATFORMS);
-            if (!isSearchMode && !isComingSoon) params.set('stores', QUALITY_STORES);
-        }
-
-        var today    = new Date();
-        var todayStr = rawgFormatDate(today);
-
-        if (isComingSoon) {
-            var tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-            params.set('dates', rawgFormatDate(tomorrow) + ',2099-12-31');
-        } else if (isTrending && !isSearchMode) {
-            var yearAgo = new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000);
-            params.set('dates', rawgFormatDate(yearAgo) + ',' + todayStr);
-        } else if (!isSearchMode) {
-            params.set('dates', '1970-01-01,' + todayStr);
-        }
-
-        var ordering = '-released';
-        if (isComingSoon) {
-            ordering = '-added';
-        } else if (isPopularity || isTrending) {
-            ordering = '-added';
-        } else {
-            var prefix = currentSortOrder === 'asc' ? '' : '-';
-            switch (currentSort) {
-                case 'rating':  ordering = prefix + 'rating';   break;
-                case 'name':    ordering = prefix + 'name';     break;
-                case 'release': ordering = prefix + 'released'; break;
-                default:        ordering = prefix + 'released'; break;
-            }
-        }
-        params.set('ordering', ordering);
-
-        var response = await fetch(`${API_BASE}/rawg/games?` + params.toString());
-        var data     = await response.json();
-
-        if (response.ok) {
             retryCount = 0;
+            var data = await response.json();
 
-            var results = data.results || [];
+            var filtered    = filterRawgBatch(data.results || [], ctx);
+            var transformed = filtered.map(transformRAWGGame);
+            filteredCache   = filteredCache.concat(transformed);
+            collectFilterOptions(transformed);
 
-            if (isComingSoon) {
-                results = results.filter(function(g) {
-                    return g.released && new Date(g.released).getTime() > Date.now();
-                });
-            } else if (!isSearchMode) {
-                results = results.filter(function(g) {
-                    return g.released && new Date(g.released).getTime() <= Date.now();
-                });
-            }
+            rawgExhausted = !data.next;
+            rawgCursor++;
+            fetchedThisCall++;
+        }
 
-            var searchLower         = isSearchMode ? currentFilters.search.toLowerCase().trim() : '';
-            var searchTokensList    = isSearchMode ? searchTokens(searchLower) : [];
-            var searchTermIsEdition = isSearchMode &&
-                EDITION_KEYWORDS.some(function(kw) { return searchLower.includes(kw); });
-            var searchTermIsJunk    = isSearchMode && JUNK_REGEX.test(searchLower);
+        if (isSearchMode && shouldRerank(searchLower)) {
+            filteredCache.sort(function(a, b) {
+                var sa = searchScore(a.name, searchLower, searchTokensList, a.added);
+                var sb = searchScore(b.name, searchLower, searchTokensList, b.added);
+                return sb - sa;
+            });
+        }
 
-            if (!searchTermIsEdition) {
-                results = results.filter(function(g) { return !isEditionVariant(g.name); });
-            }
-            if (!searchTermIsJunk) {
-                results = results.filter(function(g) { return !isJunkVariant(g.name); });
-            }
-            if (qualityFilter && !isSearchMode) {
-                var useStrictFloor = isTrending || isPopularity || currentSort === 'name';
-                if (useStrictFloor) {
-                    results = results.filter(isHighQuality);
-                } else {
-                    results = results.filter(function(g) { return !isLowQuality(g); });
-                }
-            }
+        var gamesToDisplay = filteredCache.slice(startIdx, endIdx);
+        hasMoreGames = filteredCache.length > endIdx || !rawgExhausted;
 
-            if (isSearchMode) {
-                if (shouldEnforceTokenFilter(searchLower, searchTokensList)) {
-                    var requireAll = searchTokensList.length >= 2;
-                    results = results.filter(function(g) {
-                        return nameMatchesTokens(g.name, searchTokensList, requireAll);
-                    });
-                }
-                if (shouldRerank(searchLower)) {
-                    results.sort(function(a, b) {
-                        var sa = searchScore(a.name, searchLower, searchTokensList, a.added);
-                        var sb = searchScore(b.name, searchLower, searchTokensList, b.added);
-                        return sb - sa;
-                    });
-                }
-            }
+        displaySearchResults(gamesToDisplay, true);
+        updatePaginationButtons();
 
-            var transformedGames = results.map(transformRAWGGame);
-
-            allGames     = replace ? transformedGames : allGames.concat(transformedGames);
-            hasMoreGames = !!data.next;
-
-            collectFilterOptions(transformedGames);
-
-            var gamesToDisplay = transformedGames.slice(0, gamesPerPage);
-            displaySearchResults(gamesToDisplay, replace);
-            updatePaginationButtons();
-
-            if (gamesToDisplay.length === 0 && replace) {
-                var message = currentFilters.search
-                    ? 'No games found for "' + currentFilters.search + '".'
-                    : isComingSoon ? 'No upcoming games found.' : 'No games found.';
-                document.getElementById('searchResults').innerHTML =
-                    '<div class="empty-state">' + message + '</div>';
-            }
-        } else if (response.status === 429 && retryCount < maxRetries) {
-            retryCount++;
-            await new Promise(function(resolve) { setTimeout(resolve, 2000 * retryCount); });
-            return fetchGames(replace);
-        } else {
+        if (gamesToDisplay.length === 0) {
+            var message = currentFilters.search
+                ? 'No games found for "' + currentFilters.search + '".'
+                : isComingSoon ? 'No upcoming games found.' : 'No games found.';
             document.getElementById('searchResults').innerHTML =
-                '<div class="empty-state">Error loading games. Please try again.</div>';
+                '<div class="empty-state">' + message + '</div>';
         }
     } catch (error) {
         console.error('Fetch error:', error);
-        if (retryCount < maxRetries) {
-            retryCount++;
-            await new Promise(function(resolve) { setTimeout(resolve, 2000 * retryCount); });
-            return fetchGames(replace);
-        }
         document.getElementById('searchResults').innerHTML =
             '<div class="empty-state">Error loading games. Please try again.</div>';
     } finally {
@@ -1011,10 +1041,8 @@ function applyFilters() {
         developer: document.getElementById('developer').value,
         search:    currentFilters.search || ''
     };
-    currentPage  = 1;
-    allGames     = [];
-    hasMoreGames = true;
-    retryCount   = 0;
+    currentPage = 1;
+    retryCount  = 0;
     window.scrollTo(0, 0);
     fetchGames(true);
 }
@@ -1027,8 +1055,6 @@ function resetFilters() {
     document.getElementById('searchInput').value = '';
     currentFilters = {};
     currentPage    = 1;
-    allGames       = [];
-    hasMoreGames   = true;
     retryCount     = 0;
     window.scrollTo(0, 0);
     fetchGames(true);
@@ -1043,10 +1069,8 @@ function searchGames() {
     currentSort       = 'popularity';
     currentSortOrder  = 'desc';
 
-    currentPage  = 1;
-    allGames     = [];
-    hasMoreGames = true;
-    retryCount   = 0;
+    currentPage = 1;
+    retryCount  = 0;
     window.scrollTo(0, 0);
     fetchGames(true);
 }
@@ -1054,20 +1078,17 @@ function searchGames() {
 function goToPreviousPage() {
     if (currentPage <= 1 || isLoading) return;
     currentPage--;
-    allGames     = [];
-    hasMoreGames = true;
-    retryCount   = 0;
+    retryCount = 0;
     window.scrollTo(0, 0);
-    fetchGames(true);
+    fetchGames(false);
 }
 
 function goToNextPage() {
     if (!hasMoreGames || isLoading) return;
     currentPage++;
-    allGames   = [];
     retryCount = 0;
     window.scrollTo(0, 0);
-    fetchGames(true);
+    fetchGames(false);
 }
 
 function updatePaginationButtons() {
