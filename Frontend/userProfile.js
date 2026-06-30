@@ -270,19 +270,16 @@ async function showGameDetails(gameId) {
         var name     = ig.name || 'Unknown';
         var initial  = ((name.trim().charAt(0)) || '?').toUpperCase();
         var coverUrl = ig.background_image || null;
-
-        var released = ig.released
-            ? new Date(ig.released).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-            : null;
+        var ri       = formatReleaseInfo(ig.released, ig.tba);
 
         var platformNames = (ig.platforms || [])
             .map(function(p) { return p.platform ? p.platform.name : p.name; })
             .filter(Boolean);
 
         var infoItems = [
-            released          ? { label: 'Released',  value: released }                : null,
-            publishers.length ? { label: 'Publisher', value: publishers.join(', ') }   : null,
-            developers.length ? { label: 'Developer', value: developers.join(', ') }   : null,
+            ri                   ? { label: ri.label, value: ri.long }                 : null,
+            publishers.length    ? { label: 'Publisher', value: publishers.join(', ') }: null,
+            developers.length    ? { label: 'Developer', value: developers.join(', ') }: null,
             platformNames.length ? { label: 'Platforms', value: platformNames.join(' / ') } : null
         ].filter(Boolean);
 
@@ -317,7 +314,7 @@ async function showGameDetails(gameId) {
                         '<div class="game-detail-title">' + esc(name) + '</div>' +
                         '<div class="game-detail-badges">' +
                             '<span class="game-detail-score" style="background:' + rc + ';">' + scoreSvg + ' ' + (score ? score + '/100' : 'No Rating') + '</span>' +
-                            (released ? '<span class="game-detail-date">' + esc(released) + '</span>' : '') +
+                            (ri ? '<span class="game-detail-date"' + (ri.isUnreleased ? ' style="color:#3b82f6;"' : '') + '>' + esc(ri.short) + '</span>' : '') +
                         '</div>' +
                     '</div>' +
                 '</div>' +
@@ -555,19 +552,16 @@ async function upShowGameDetails(gameId) {
         var name     = ig.name || 'Unknown';
         var initial  = ((name.trim().charAt(0)) || '?').toUpperCase();
         var coverUrl = ig.background_image || null;
-
-        var released = ig.released
-            ? new Date(ig.released).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-            : null;
+        var ri       = formatReleaseInfo(ig.released, ig.tba);
 
         var platformNames = (ig.platforms || [])
             .map(function(p) { return p.platform ? p.platform.name : p.name; })
             .filter(Boolean);
 
         var infoItems = [
-            released          ? { label: 'Released',  value: released }                : null,
-            publishers.length ? { label: 'Publisher', value: publishers.join(', ') }   : null,
-            developers.length ? { label: 'Developer', value: developers.join(', ') }   : null,
+            ri                   ? { label: ri.label, value: ri.long }                 : null,
+            publishers.length    ? { label: 'Publisher', value: publishers.join(', ') }: null,
+            developers.length    ? { label: 'Developer', value: developers.join(', ') }: null,
             platformNames.length ? { label: 'Platforms', value: platformNames.join(' / ') } : null
         ].filter(Boolean);
 
@@ -601,7 +595,7 @@ async function upShowGameDetails(gameId) {
                         '<div class="game-detail-title">' + esc(name) + '</div>' +
                         '<div class="game-detail-badges">' +
                             '<span class="game-detail-score" style="background:' + rc + ';">' + scoreSvg + ' ' + (score ? score + '/100' : 'No Rating') + '</span>' +
-                            (released ? '<span class="game-detail-date">' + esc(released) + '</span>' : '') +
+                            (ri ? '<span class="game-detail-date"' + (ri.isUnreleased ? ' style="color:#3b82f6;"' : '') + '>' + esc(ri.short) + '</span>' : '') +
                         '</div>' +
                     '</div>' +
                 '</div>' +
@@ -702,6 +696,34 @@ function esc(str) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
+}
+
+function formatReleaseInfo(released, tba) {
+    var d   = released ? new Date(released) : null;
+    var now = new Date();
+    var hasFutureDate = d && d.getTime() > now.getTime();
+    var isUnreleased  = !!tba || hasFutureDate;
+
+    if (isUnreleased) {
+        if (hasFutureDate) {
+            return {
+                label:        'Releases',
+                long:         d.toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' }),
+                short:        d.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' }),
+                isUnreleased: true
+            };
+        }
+        return { label: 'Release date', long: 'TBA', short: 'TBA', isUnreleased: true };
+    }
+    if (d) {
+        return {
+            label:        'Released',
+            long:         d.toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' }),
+            short:        d.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' }),
+            isUnreleased: false
+        };
+    }
+    return null;
 }
 
 function formatDate(dateString) {

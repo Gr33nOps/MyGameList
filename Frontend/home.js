@@ -18,7 +18,8 @@ let qualityFilter = true;
 let filteredCache = [];
 let rawgCursor    = 1;
 let rawgExhausted = false;
-const MAX_FETCHES_PER_CLICK = 6;
+const MAX_FETCHES_PER_CLICK = 9;
+const FETCH_BATCH_SIZE      = 3;
 
 const QUALITY_PARENT_PLATFORMS = '1,2,3,7';
 const QUALITY_STORES           = '1,2,3,5,6,7,11';
@@ -276,6 +277,34 @@ function rawgFormatDate(d) {
     return y + '-' + m + '-' + day;
 }
 
+function formatReleaseInfo(released, tba) {
+    var d   = released ? new Date(released) : null;
+    var now = new Date();
+    var hasFutureDate = d && d.getTime() > now.getTime();
+    var isUnreleased  = !!tba || hasFutureDate;
+
+    if (isUnreleased) {
+        if (hasFutureDate) {
+            return {
+                label:        'Releases',
+                long:         d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+                short:        d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+                isUnreleased: true
+            };
+        }
+        return { label: 'Release date', long: 'TBA', short: 'TBA', isUnreleased: true };
+    }
+    if (d) {
+        return {
+            label:        'Released',
+            long:         d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+            short:        d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+            isUnreleased: false
+        };
+    }
+    return null;
+}
+
 function searchTokens(q) {
     if (!q) return [];
     return q.toLowerCase()
@@ -363,6 +392,7 @@ function transformRAWGGame(game) {
         rating:           displayRating,
         description:      '',
         released:         game.released || null,
+        tba:              !!game.tba,
         metacritic_score: metaScore,
         rating_count:     game.ratings_count || 0,
         playtime:         game.playtime || 0,
@@ -371,7 +401,7 @@ function transformRAWGGame(game) {
         platforms:        platforms,
         publishers:       publishers,
         developers:       developers,
-        is_coming_soon:   releasedTs > nowTs
+        is_coming_soon:   !!game.tba || releasedTs > nowTs
     };
 }
 
@@ -508,29 +538,33 @@ async function fetchGames(reset) {
         var fetchedThisCall = 0;
 
         while (filteredCache.length < endIdx && !rawgExhausted && fetchedThisCall < MAX_FETCHES_PER_CLICK) {
-            var params   = buildRawgParams(rawgCursor, isSearchMode, isComingSoon, isPopularity, isTrending);
-            var response = await fetch(`${API_BASE}/rawg/games?` + params.toString());
+            var thisBatchSize = Math.min(FETCH_BATCH_SIZE, MAX_FETCHES_PER_CLICK - fetchedThisCall);
+            var pageNums      = [];
+            for (var i = 0; i < thisBatchSize; i++) pageNums.push(rawgCursor + i);
 
-            if (!response.ok) {
-                if (response.status === 429 && retryCount < maxRetries) {
-                    retryCount++;
-                    await new Promise(function(r) { setTimeout(r, 2000 * retryCount); });
-                    continue;
-                }
-                throw new Error('RAWG error ' + response.status);
+            var responses = await Promise.all(pageNums.map(function(pageNum) {
+                var params = buildRawgParams(pageNum, isSearchMode, isComingSoon, isPopularity, isTrending);
+                return fetch(`${API_BASE}/rawg/games?` + params.toString())
+                    .then(function(r) {
+                        return r.json().then(function(d) { return { ok: r.ok, status: r.status, data: d }; });
+                    })
+                    .catch(function() { return { ok: false, status: 0, data: null }; });
+            }));
+
+            var batchHitEnd = false;
+            for (var j = 0; j < responses.length; j++) {
+                var res = responses[j];
+                if (!res.ok || !res.data) continue;
+                var filtered    = filterRawgBatch(res.data.results || [], ctx);
+                var transformed = filtered.map(transformRAWGGame);
+                filteredCache   = filteredCache.concat(transformed);
+                collectFilterOptions(transformed);
+                if (!res.data.next) batchHitEnd = true;
             }
 
-            retryCount = 0;
-            var data = await response.json();
-
-            var filtered    = filterRawgBatch(data.results || [], ctx);
-            var transformed = filtered.map(transformRAWGGame);
-            filteredCache   = filteredCache.concat(transformed);
-            collectFilterOptions(transformed);
-
-            rawgExhausted = !data.next;
-            rawgCursor++;
-            fetchedThisCall++;
+            rawgCursor      += thisBatchSize;
+            fetchedThisCall += thisBatchSize;
+            if (batchHitEnd) rawgExhausted = true;
         }
 
         if (isSearchMode && shouldRerank(searchLower)) {
@@ -542,15 +576,24 @@ async function fetchGames(reset) {
         }
 
         var gamesToDisplay = filteredCache.slice(startIdx, endIdx);
-        hasMoreGames = filteredCache.length > endIdx || !rawgExhausted;
+        hasMoreGames = filteredCache.length > endIdx;
 
         displaySearchResults(gamesToDisplay, true);
         updatePaginationButtons();
 
         if (gamesToDisplay.length === 0) {
-            var message = currentFilters.search
-                ? 'No games found for "' + currentFilters.search + '".'
-                : isComingSoon ? 'No upcoming games found.' : 'No games found.';
+            var message;
+            if (currentFilters.search) {
+                message = 'No games found for "' + currentFilters.search + '".';
+            } else if (isComingSoon) {
+                message = 'No upcoming games found.';
+            } else if (qualityFilter && filteredCache.length === 0) {
+                message = 'No quality games match this sort. Try toggling <strong>Quality only</strong> off, or pick a different sort.';
+            } else if (currentPage > 1) {
+                message = 'No more games to show.';
+            } else {
+                message = 'No games found.';
+            }
             document.getElementById('searchResults').innerHTML =
                 '<div class="empty-state">' + message + '</div>';
         }
@@ -611,22 +654,18 @@ function displaySearchResults(games, replace) {
         return;
     }
 
-    var currentTimestamp = Math.floor(Date.now() / 1000);
-
     var html = games.map(function(game) {
-        var name          = game.name || 'Unknown';
-        var initial       = initialOf(name);
-        var gameReleaseTs = game.released ? new Date(game.released).getTime() / 1000 : 0;
-        var isComingSoon  = gameReleaseTs > currentTimestamp;
+        var name    = game.name || 'Unknown';
+        var initial = initialOf(name);
+        var ri      = formatReleaseInfo(game.released, game.tba);
 
         var releasedHtml = '';
-        if (game.released) {
-            var dateColor = isComingSoon ? '#3b82f6' : '#94a3b8';
-            var dateStr   = new Date(game.released).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-            releasedHtml  = '<span style="color:' + dateColor + ';font-size:12px;">' + esc(dateStr) + '</span>';
+        if (ri) {
+            var dateColor = ri.isUnreleased ? '#3b82f6' : '#94a3b8';
+            releasedHtml  = '<span style="color:' + dateColor + ';font-size:12px;">' + esc(ri.short) + '</span>';
         }
 
-        var comingSoonBadge = isComingSoon
+        var comingSoonBadge = ri && ri.isUnreleased
             ? '<span class="card-coming-soon-badge">COMING SOON</span>'
             : '';
 
@@ -700,6 +739,7 @@ async function showGameDetails(gameId) {
                     rating:           displayRating,
                     description:      description,
                     released:         detail.released || null,
+                    tba:              !!detail.tba,
                     metacritic_score: metaScore,
                     rating_count:     detail.ratings_count || 0,
                     playtime:         detail.playtime || 0,
@@ -734,10 +774,11 @@ async function showGameDetails(gameId) {
             var initial  = initialOf(name);
             var heroBg   = game.screenshot_image || game.background_image || null;
             var coverSrc = game.background_image || heroBg;
+            var ri       = formatReleaseInfo(game.released, game.tba);
 
             var infoItems = [
-                game.released
-                    ? { label: 'Released', value: new Date(game.released).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) }
+                ri
+                    ? { label: ri.label, value: ri.long }
                     : null,
                 game.publishers && game.publishers.length
                     ? { label: 'Publisher', value: game.publishers.map(function(p) { return p.name; }).join(', ') }
@@ -772,8 +813,8 @@ async function showGameDetails(gameId) {
                 '</div>';
             }
 
-            var releasedBadge = game.released
-                ? '<span class="game-detail-date">' + esc(new Date(game.released).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })) + '</span>'
+            var releasedBadge = ri
+                ? '<span class="game-detail-date"' + (ri.isUnreleased ? ' style="color:#3b82f6;"' : '') + '>' + esc(ri.short) + '</span>'
                 : '';
 
             var descText = game.description && game.description.trim()

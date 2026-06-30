@@ -206,7 +206,8 @@ module.exports = (db, verifyToken, checkBanned) => {
           'games.description',
           'games.released',
           'games.metacritic_score',
-          'games.playtime'
+          'games.playtime',
+          'games.igdb_id'
         );
 
       if (status) query = query.where('user_game_lists.status', status);
@@ -380,6 +381,7 @@ module.exports = (db, verifyToken, checkBanned) => {
           'games.rating',
           'games.released',
           'games.metacritic_score',
+          'games.igdb_id',
           'games.slug as game_slug'
         );
 

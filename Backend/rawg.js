@@ -7,16 +7,6 @@ module.exports = () => {
   const RAWG_API_KEY = process.env.RAWG_API_KEY;
   const RAWG_BASE    = 'https://api.rawg.io/api';
 
-  let lastAPICall = 0;
-  const MIN_API_DELAY = 100;
-
-  async function respectRateLimit() {
-    const now  = Date.now();
-    const wait = MIN_API_DELAY - (now - lastAPICall);
-    if (wait > 0) await new Promise(r => setTimeout(r, wait));
-    lastAPICall = Date.now();
-  }
-
   function ensureKey(res) {
     if (!RAWG_API_KEY) {
       res.status(500).json({
@@ -41,7 +31,6 @@ module.exports = () => {
 
   async function rawgFetch(path, params, res, label) {
     if (!ensureKey(res)) return null;
-    await respectRateLimit();
 
     const url      = buildUrl(path, params);
     const response = await fetch(url, { headers: { Accept: 'application/json' } });
